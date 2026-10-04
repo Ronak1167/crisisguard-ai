@@ -604,7 +604,11 @@ export default function App() {
 
           {/* 3D Holographic Globe or 2D Tactical GIS Map */}
           {viewMode === '3d' ? (
-            <ThreeGlobe centerCoords={activeCoords} liveEvents={liveHazards} />
+            <ThreeGlobe
+              centerCoords={activeCoords}
+              liveEvents={liveHazards}
+              detectedFacilities={results?.resources}
+            />
           ) : (
             <TacticalMap
               coordinates={activeCoords}
@@ -613,6 +617,7 @@ export default function App() {
               disasterType={disasterType}
             />
           )}
+
 
           {/* Live Telemetry Banner */}
           {liveTelemetry && (

@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet'
+import { useEffect, useRef } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -24,8 +24,9 @@ const createCustomIcon = (emoji, color) => {
       align-items: center;
       justify-content: center;
       font-size: 16px;
-      box-shadow: 0 0 12px ${color};
+      box-shadow: 0 0 14px ${color};
       border: 2px solid white;
+      animation: pulse 2s infinite;
     ">${emoji}</div>`,
     iconSize: [32, 32],
     iconAnchor: [16, 16],
@@ -36,19 +37,78 @@ const epicenterIcon = createCustomIcon('⚠️', '#ef4444')
 const hospitalIcon = createCustomIcon('🏥', '#10b981')
 const shelterIcon = createCustomIcon('🏠', '#3b82f6')
 
+/**
+ * MapCameraController: Manages movie-style camera swooping
+ * Zooms in when a disaster is first detected, and zooms out to fit bounds
+ * when multiple facilities (hospitals, shelters) are identified!
+ */
+function MapCameraController({ coordinates, hospitals = [], shelters = [] }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!coordinates?.lat || !coordinates?.lng) return
+    const lat = coordinates.lat
+    const lng = coordinates.lng
+
+    const allPoints = [[lat, lng]]
+    hospitals.forEach((h) => {
+      if (h.lat && h.lng) allPoints.push([h.lat, h.lng])
+    })
+    shelters.forEach((s) => {
+      if (s.lat && s.lng) allPoints.push([s.lat, s.lng])
+    })
+
+    if (allPoints.length > 1) {
+      // Multiple locations detected: Movie-style zoom out and frame all assets
+      const bounds = L.latLngBounds(allPoints)
+      map.flyToBounds(bounds, { padding: [55, 55], duration: 2.2, maxZoom: 13 })
+    } else {
+      // Single location: Zoom into epicenter
+      map.flyTo([lat, lng], 12, { duration: 1.8, easeLinearity: 0.25 })
+    }
+  }, [coordinates?.lat, coordinates?.lng, hospitals.length, shelters.length, map])
+
+  return null
+}
+
 export default function TacticalMap({ coordinates, hospitals = [], shelters = [], disasterType = 'cyclone' }) {
+  const mapRef = useRef(null)
   const lat = coordinates?.lat ?? 20.2724
   const lng = coordinates?.lng ?? 85.8338
 
+  const handleZoomEpicenter = () => {
+    if (mapRef.current) {
+      mapRef.current.flyTo([lat, lng], 13, { duration: 1.8 })
+    }
+  }
+
+  const handleFitAllAssets = () => {
+    if (mapRef.current) {
+      const allPoints = [[lat, lng]]
+      hospitals.forEach((h) => {
+        if (h.lat && h.lng) allPoints.push([h.lat, h.lng])
+      })
+      shelters.forEach((s) => {
+        if (s.lat && s.lng) allPoints.push([s.lat, s.lng])
+      })
+      if (allPoints.length > 1) {
+        const bounds = L.latLngBounds(allPoints)
+        mapRef.current.flyToBounds(bounds, { padding: [55, 55], duration: 2.0 })
+      }
+    }
+  }
+
   return (
-    <div style={{ height: '340px', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(0, 240, 255, 0.25)', position: 'relative' }}>
+    <div style={{ height: '360px', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(0, 240, 255, 0.25)', position: 'relative' }}>
       <MapContainer
-        key={`${lat}-${lng}`}
+        ref={mapRef}
         center={[lat, lng]}
         zoom={11}
         scrollWheelZoom={false}
         style={{ height: '100%', width: '100%', background: '#0b132b' }}
       >
+        <MapCameraController coordinates={coordinates} hospitals={hospitals} shelters={shelters} />
+
         {/* Dark Mode CartoDB TileLayer for high-tech aesthetics */}
         <TileLayer
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
@@ -122,6 +182,36 @@ export default function TacticalMap({ coordinates, hospitals = [], shelters = []
           )
         ))}
       </MapContainer>
+
+      {/* Movie-Style Camera Controls Bar */}
+      <div style={{
+        position: 'absolute',
+        bottom: '12px',
+        left: '12px',
+        display: 'flex',
+        gap: '6px',
+        zIndex: 1000,
+        background: 'rgba(2, 6, 23, 0.85)',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        padding: '4px',
+        borderRadius: '8px',
+      }}>
+        <button
+          onClick={handleZoomEpicenter}
+          className="severity-btn"
+          style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '700', color: '#00f0ff', borderColor: 'rgba(0,240,255,0.4)' }}
+        >
+          🎯 FOCUS EPICENTER
+        </button>
+        <button
+          onClick={handleFitAllAssets}
+          className="severity-btn"
+          style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '700', color: '#38bdf8', borderColor: 'rgba(56,189,248,0.4)' }}
+        >
+          🌐 FIT ALL ASSETS ({hospitals.length + shelters.length})
+        </button>
+      </div>
 
       {/* Floating Tactical Overlay Badge */}
       <div style={{
