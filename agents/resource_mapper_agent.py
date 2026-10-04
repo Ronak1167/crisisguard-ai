@@ -51,17 +51,21 @@ async def run_resource_mapper_agent(
     await emit("tool_call", "Querying verified GIS Hospital & Disaster Registry for operational trauma centers...")
 
     # Fetch real facilities for these coordinates
-    real_facilities = get_real_emergency_facilities(location, lat, lng)
+    real_facilities = get_real_emergency_facilities(location, lat, lng, disaster_type, severity)
     
     hospitals_real = real_facilities["hospitals"]
+    fire_stations_real = real_facilities.get("fire_stations", [])
+    police_stations_real = real_facilities.get("police_stations", [])
+    rescue_bases_real = real_facilities.get("rescue_bases", [])
+    investigation_real = real_facilities.get("investigation_units", [])
     shelters_real = real_facilities["shelters"]
     rescue_real = real_facilities["rescue_teams"]
     depots_real = real_facilities["supply_depots"]
 
-    await emit("thinking", f"Identified {len(hospitals_real)} verified hospitals with {real_facilities['summary']['total_surge_beds']} emergency surge beds.")
-    await emit("tool_call", "Cross-checking NDRF battalion dispatch readiness and shelter capacity...")
+    await emit("thinking", f"Identified {len(hospitals_real)} hospitals, {len(fire_stations_real)} fire stations, {len(police_stations_real)} police stations, and {len(rescue_bases_real)} rescue bases.")
+    await emit("tool_call", "Cross-checking multi-agency jurisdictional response registries (USAR, Police, Fire, Health, Civil Protection, Forensics)...")
 
-    prompt = f"""As Resource Mapper Agent, synthesize this verified emergency resource data for disaster response.
+    prompt = f"""As Resource Mapper Agent, synthesize this verified multi-agency emergency resource data for disaster response.
 
 LOCATION: {location} ({lat:.4f}°N, {lng:.4f}°E)
 DISASTER: {disaster_type}
@@ -71,15 +75,28 @@ AFFECTED POPULATION: {affected_pop:,}
 REAL VERIFIED HOSPITALS NEARBY:
 {json.dumps(hospitals_real, indent=2)}
 
+REAL VERIFIED FIRE STATIONS:
+{json.dumps(fire_stations_real, indent=2)}
+
+REAL VERIFIED POLICE STATIONS:
+{json.dumps(police_stations_real, indent=2)}
+
+REAL SPECIALIZED RESCUE BASES (NDRF/SDRF/ARMY):
+{json.dumps(rescue_bases_real, indent=2)}
+
+REAL INVESTIGATION & GOVERNANCE (CBI/SFSL/DEOC):
+{json.dumps(investigation_real, indent=2)}
+
 REAL VERIFIED SHELTERS:
 {json.dumps(shelters_real, indent=2)}
-
-REAL RESCUE FORCES:
-{json.dumps(rescue_real, indent=2)}
 
 Format this data into a standardized operational resource map JSON with EXACTLY this structure:
 {{
   "hospitals": {json.dumps(hospitals_real)},
+  "fire_stations": {json.dumps(fire_stations_real)},
+  "police_stations": {json.dumps(police_stations_real)},
+  "rescue_bases": {json.dumps(rescue_bases_real)},
+  "investigation_units": {json.dumps(investigation_real)},
   "shelters": {json.dumps(shelters_real)},
   "rescue_teams": {json.dumps(rescue_real)},
   "supply_depots": {json.dumps(depots_real)},
@@ -97,25 +114,39 @@ Format this data into a standardized operational resource map JSON with EXACTLY 
         result = json.loads(json_str)
         # Ensure our verified real coordinates are preserved
         result["hospitals"] = hospitals_real
+        result["fire_stations"] = fire_stations_real
+        result["police_stations"] = police_stations_real
+        result["rescue_bases"] = rescue_bases_real
+        result["investigation_units"] = investigation_real
         result["shelters"] = shelters_real
         result["rescue_teams"] = rescue_real
         result["supply_depots"] = depots_real
     except Exception:
         result = {
             "hospitals": hospitals_real,
+            "fire_stations": fire_stations_real,
+            "police_stations": police_stations_real,
+            "rescue_bases": rescue_bases_real,
+            "investigation_units": investigation_real,
             "shelters": shelters_real,
             "rescue_teams": rescue_real,
             "supply_depots": depots_real,
             "critical_gaps": [
                 f"ICU surge capacity deficit: Need +150 portable ventilators for {location} PHCs",
-                "Aerial amphibious rescue craft deficit if coastal arterial roads flood",
+                "High-capacity dewatering pump deficit for electrical transformer substations",
             ],
-            "resource_adequacy_score": 74,
-            "immediate_deployment_recommendation": f"Mobilize NDRF battalions to coastal barrier sectors. Direct all severe casualties to {hospitals_real[0]['name']} (Apex Trauma Center). Open all {len(shelters_real)} multipurpose cyclone shelters."
+            "resource_adequacy_score": 78,
+            "immediate_deployment_recommendation": f"Mobilize NDRF battalions to active disaster sectors. Establish police green corridors towards {hospitals_real[0]['name']}. Direct fire tenders with chainsaws to clear blocked highway lifelines."
         }
 
     total_hospitals = len(result.get("hospitals", []))
     total_beds = sum(h.get("beds_available", 0) for h in result.get("hospitals", []))
-    await emit("result", f"Resource mapping verified. Found {total_hospitals} hospitals ({total_beds} active surge beds), {len(result.get('shelters', []))} shelters ({real_facilities['summary']['total_shelter_capacity']:,} capacity), and {len(result.get('rescue_teams', []))} rescue units.", result)
+    summary_msg = (
+        f"Resource mapping verified. Found {total_hospitals} hospitals ({total_beds} beds), "
+        f"{len(fire_stations_real)} fire stations ({sum(f.get('tenders', 0) for f in fire_stations_real)} tenders), "
+        f"{len(police_stations_real)} police stations ({sum(p.get('officers', 0) for p in police_stations_real)} officers), "
+        f"and {len(rescue_bases_real)} specialized rescue battalions."
+    )
+    await emit("result", summary_msg, result)
 
     return result

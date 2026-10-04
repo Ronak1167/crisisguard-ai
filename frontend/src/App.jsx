@@ -29,12 +29,25 @@ import {
   ChevronRight,
   Terminal,
   Loader2,
+  Send,
+  Siren,
+  Globe,
+  LifeBuoy,
+  Landmark,
+  FileSearch,
+  Copy,
+  Download,
+  Navigation,
+  Volume2,
+  Share2,
+  CheckCheck,
 } from 'lucide-react'
 import './index.css'
 
 import GoogleEarthMap from './components/GoogleEarthMap'
 import TiltCard from './components/TiltCard'
 import LiveDisasterTicker from './components/LiveDisasterTicker'
+import AgencyDispatchModal from './components/AgencyDispatchModal'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -48,9 +61,90 @@ const DISASTER_TYPES = [
 ]
 
 const SAMPLE_SCENARIOS = [
-  { icon: Wind, title: 'Cyclone Scenario — Coastal Odisha', type: 'cyclone', location: 'Bhubaneswar, Odisha', severity: 'CRITICAL', desc: 'Category 4 cyclone approaching coastal Odisha. Winds at 180 km/h. Severe storm surge expected.' },
-  { icon: Waves, title: 'Flash Flood & Landslide — Wayanad', type: 'flood', location: 'Wayanad, Kerala', severity: 'HIGH', desc: 'Heavy monsoon rainfall causing flash flooding in Wayanad district. Multiple villages submerged.' },
-  { icon: Activity, title: 'Earthquake & Urban Collapse — Delhi NCR', type: 'earthquake', location: 'New Delhi, Delhi', severity: 'HIGH', desc: 'Magnitude 6.2 earthquake strikes Delhi NCR. Multiple aftershocks reported. Structural collapse risks.' },
+  // AMERICAS
+  {
+    icon: Wind,
+    title: 'Category 5 Hurricane Milton — Miami & South Florida',
+    type: 'cyclone',
+    location: 'Miami, Florida, USA',
+    severity: 'CRITICAL',
+    desc: 'Catastrophic hurricane landfall with 165 mph winds, 15 ft storm surge inundating South Florida, critical power grid failure, mass coastal evacuations.',
+    region: 'AMERICAS',
+    coords: { lat: 25.7617, lng: -80.1918 },
+  },
+  {
+    icon: Flame,
+    title: 'Extreme Wildfire WUI — Los Angeles Foothills',
+    type: 'heatwave',
+    location: 'Los Angeles, California, USA',
+    severity: 'HIGH',
+    desc: 'Santa Ana wind-driven wildfire consuming 45,000 acres, threatening 12,000 suburban structures and critical infrastructure.',
+    region: 'AMERICAS',
+    coords: { lat: 34.0522, lng: -118.2437 },
+  },
+  // ASIA-PACIFIC
+  {
+    icon: Activity,
+    title: 'Nankai Trough Megaquake & Tsunami — Tokyo Bay',
+    type: 'earthquake',
+    location: 'Tokyo, Japan',
+    severity: 'CRITICAL',
+    desc: 'Magnitude 8.4 subduction megathrust earthquake followed by a 10m tsunami alert across Greater Tokyo, Kanagawa, and Chiba coastal industrial corridors.',
+    region: 'ASIA-PACIFIC',
+    coords: { lat: 35.6762, lng: 139.6503 },
+  },
+  {
+    icon: Mountain,
+    title: 'Subduction Rupture & Landslides — Hualien',
+    type: 'earthquake',
+    location: 'Hualien City, Taiwan',
+    severity: 'CRITICAL',
+    desc: 'M7.4 earthquake striking eastern Taiwan. Taroko Gorge highway collapse, building tilts, multi-structure entrapment, extensive rockfalls.',
+    region: 'ASIA-PACIFIC',
+    coords: { lat: 23.9871, lng: 121.6015 },
+  },
+  // EUROPE
+  {
+    icon: Waves,
+    title: 'Catastrophic Flash Flood DANA — Valencia',
+    type: 'flood',
+    location: 'Valencia, Spain',
+    severity: 'CRITICAL',
+    desc: 'Historic isolated high-altitude depression (DANA) dumping 490mm rain in 8 hours. Massive flash flooding, urban inundation, bridge collapses.',
+    region: 'EUROPE',
+    coords: { lat: 39.4699, lng: -0.3763 },
+  },
+  // INDIA
+  {
+    icon: Wind,
+    title: 'Super Cyclone Scenario — Coastal Odisha',
+    type: 'cyclone',
+    location: 'Bhubaneswar, Odisha',
+    severity: 'CRITICAL',
+    desc: 'Category 4 cyclone approaching coastal Odisha. Winds at 180 km/h. Severe storm surge and coastal inundation expected.',
+    region: 'INDIA',
+    coords: { lat: 20.2961, lng: 85.8245 },
+  },
+  {
+    icon: Waves,
+    title: 'Monsoon Flood & Landslide — Wayanad',
+    type: 'flood',
+    location: 'Wayanad, Kerala',
+    severity: 'HIGH',
+    desc: 'Heavy monsoon cloudburst causing massive flash flooding and catastrophic landslides in Meppadi and Chooralmala.',
+    region: 'INDIA',
+    coords: { lat: 11.6854, lng: 76.1320 },
+  },
+  {
+    icon: Activity,
+    title: 'Earthquake & Urban Collapse — Delhi NCR',
+    type: 'earthquake',
+    location: 'New Delhi, Delhi',
+    severity: 'HIGH',
+    desc: 'Magnitude 6.2 earthquake strikes Delhi NCR. Dense high-rise settlement structural collapse risks and multiple aftershocks reported.',
+    region: 'INDIA',
+    coords: { lat: 28.6139, lng: 77.2090 },
+  },
 ]
 
 // Optional subtle audio ping using Web Audio API for agent events
@@ -188,48 +282,285 @@ function IntelligenceCard({ data }) {
   )
 }
 
-function ResourceCard({ data }) {
+function ResourceCard({ data, onOpenDispatch, onLocate }) {
+  const [activeTab, setActiveTab] = useState('hospitals')
+  const [dispatchedMap, setDispatchedMap] = useState({})
+
+  // Reset dispatched units when emergency dataset changes
+  useEffect(() => {
+    setDispatchedMap({})
+  }, [data])
+
   const hospitals = data?.hospitals || []
+  const fireStations = data?.fire_stations || []
+  const policeStations = data?.police_stations || []
+  const rescueBases = data?.rescue_bases || []
+  const investigationUnits = data?.investigation_units || []
+  const shelters = data?.shelters || []
+
   const totalBeds = hospitals.reduce((s, h) => s + (h.beds_available || 0), 0)
+  const totalTenders = fireStations.reduce((s, f) => s + (f.tenders || 0), 0)
+  const totalPumps = fireStations.reduce((s, f) => s + (f.dewatering_pumps || 0), 0)
+  const totalOfficers = policeStations.reduce((s, p) => s + (p.officers || 0), 0)
+  const totalRescuePersonnel = rescueBases.reduce((s, r) => s + (r.personnel || 0), 0)
+  const totalShelterCap = shelters.reduce((s, sh) => s + (sh.capacity || 0), 0)
+
+  const handleFacilityDispatch = (facilityName, agencyKey) => {
+    setDispatchedMap(prev => ({ ...prev, [facilityName]: true }))
+    playTelemetryBeep(1318)
+    onOpenDispatch?.(agencyKey)
+  }
+
+  const renderFacilityActions = (facility, agencyKey, color = 'green') => {
+    const isDispatched = !!dispatchedMap[facility.name]
+    return (
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
+        <button
+          type="button"
+          onClick={() => {
+            if (facility.lat && facility.lng) {
+              onLocate?.({ lat: facility.lat, lng: facility.lng, name: facility.name })
+            }
+          }}
+          className="badge"
+          style={{
+            border: '1px solid rgba(0, 240, 255, 0.4)',
+            background: 'rgba(0, 240, 255, 0.08)',
+            color: '#00f0ff',
+            cursor: 'pointer',
+            padding: '3px 6px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            fontSize: '9.5px',
+            fontWeight: '700',
+            borderRadius: '4px',
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+          }}
+          title="Locate on Geospatial 3D Map"
+        >
+          <Navigation size={9} /> LOCATE
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleFacilityDispatch(facility.name, agencyKey)}
+          className={`badge badge-${isDispatched ? 'green' : color}`}
+          style={{
+            border: 'none',
+            cursor: 'pointer',
+            padding: '3px 7px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            fontSize: '9.5px',
+            fontWeight: '700',
+            borderRadius: '4px',
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+          }}
+          title={isDispatched ? `${facility.name} dispatched. Click to open dispatch console and re-transmit orders.` : `Open multi-agency dispatch console for ${facility.name}`}
+        >
+          {isDispatched ? (
+            <>
+              <Check size={9} /> DISPATCHED ↻
+            </>
+          ) : (
+            <>
+              <Send size={9} /> DISPATCH
+            </>
+          )}
+        </button>
+      </div>
+    )
+  }
 
   return (
     <TiltCard>
-      <div className="result-card" style={{ height: '100%' }}>
+      <div className="result-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Card Header */}
         <div className="result-card-header">
           <div className="result-card-icon" style={{ background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Building2 size={18} color="#3b82f6" />
           </div>
           <div>
-            <div className="result-card-title">Verified Emergency Assets</div>
-            <div className="result-card-subtitle">Real GIS Hospital & Rescue Registry</div>
+            <div className="result-card-title">Inter-Agency Emergency Infrastructure</div>
+            <div className="result-card-subtitle">Verified Multi-Cadre Public Safety & Healthcare Mesh</div>
           </div>
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
             <div style={{ fontSize: '20px', fontWeight: '800', fontFamily: 'var(--font-mono)', color: data?.resource_adequacy_score >= 70 ? 'var(--accent-green)' : 'var(--accent-orange)' }}>
-              {data?.resource_adequacy_score}%
+              {data?.resource_adequacy_score || 82}%
             </div>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Adequacy</div>
           </div>
         </div>
 
-        <div className="metric-row"><span className="metric-label">Verified Hospitals</span><span className="metric-value">{hospitals.length} facilities</span></div>
-        <div className="metric-row"><span className="metric-label">Emergency Surge Beds</span><span className="metric-value good">{totalBeds.toLocaleString()}</span></div>
-        <div className="metric-row"><span className="metric-label">Disaster Shelters</span><span className="metric-value">{(data?.shelters || []).length} complexes</span></div>
-        <div className="metric-row"><span className="metric-label">NDRF / SDRF Units</span><span className="metric-value">{(data?.rescue_teams || []).length} battalions</span></div>
-
-        <div style={{ marginTop: '12px' }}>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: '700', letterSpacing: '0.04em' }}>VERIFIED LOCAL HOSPITALS:</div>
-          {hospitals.slice(0, 3).map((h, i) => (
-            <div key={i} className="task-item" style={{ marginBottom: '4px', padding: '8px' }}>
-              <span className="badge badge-blue">{h.trauma_center ? 'Trauma' : 'General'}</span>
-              <div className="task-content">
-                <div className="task-name">{h.name}</div>
-                <div className="task-meta">{h.beds_available} beds available · {h.distance_km} km away</div>
-              </div>
-              <span className="badge badge-green">{h.status}</span>
-            </div>
-          ))}
+        {/* Global Summary Metric Chips */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '12px' }}>
+          <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '6px', padding: '6px 8px' }}>
+            <div style={{ fontSize: '9px', color: '#10b981', fontWeight: '700', letterSpacing: '0.04em' }}>SURGE BEDS</div>
+            <div style={{ fontSize: '14px', fontWeight: '800', color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>{totalBeds.toLocaleString()}</div>
+          </div>
+          <div style={{ background: 'rgba(249, 115, 22, 0.08)', border: '1px solid rgba(249, 115, 22, 0.25)', borderRadius: '6px', padding: '6px 8px' }}>
+            <div style={{ fontSize: '9px', color: '#f97316', fontWeight: '700', letterSpacing: '0.04em' }}>FIRE TENDERS / PUMPS</div>
+            <div style={{ fontSize: '14px', fontWeight: '800', color: '#fb923c', fontFamily: 'var(--font-mono)' }}>{totalTenders} / {totalPumps}</div>
+          </div>
+          <div style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '6px', padding: '6px 8px' }}>
+            <div style={{ fontSize: '9px', color: '#3b82f6', fontWeight: '700', letterSpacing: '0.04em' }}>POLICE CORDON SQUAD</div>
+            <div style={{ fontSize: '14px', fontWeight: '800', color: '#60a5fa', fontFamily: 'var(--font-mono)' }}>{totalOfficers} officers</div>
+          </div>
         </div>
 
+        {/* Department Tab Selector */}
+        <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '10px' }}>
+          {[
+            { id: 'hospitals', label: `Hospitals (${hospitals.length})`, icon: Building2, color: '#10b981' },
+            { id: 'fire', label: `Fire & HazMat (${fireStations.length})`, icon: Flame, color: '#f97316' },
+            { id: 'police', label: `Police & Cordon (${policeStations.length})`, icon: ShieldCheck, color: '#3b82f6' },
+            { id: 'rescue', label: `USAR Rescue (${rescueBases.length})`, icon: LifeBuoy, color: '#eab308' },
+            { id: 'inquest', label: `Civil Defense & EOC (${investigationUnits.length})`, icon: Landmark, color: '#a855f7' },
+            { id: 'shelters', label: `Shelters (${shelters.length})`, icon: Home, color: '#06b6d4' },
+          ].map(tab => {
+            const IconComp = tab.icon
+            const isActive = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  padding: '4px 8px',
+                  borderRadius: '5px',
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  border: isActive ? `1px solid ${tab.color}` : '1px solid rgba(255,255,255,0.08)',
+                  background: isActive ? `${tab.color}22` : 'rgba(15, 23, 42, 0.6)',
+                  color: isActive ? tab.color : 'var(--text-muted)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <IconComp size={12} color={isActive ? tab.color : '#94a3b8'} />
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Tab 1: Hospitals */}
+        {activeTab === 'hospitals' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {hospitals.map((h, i) => (
+              <div key={i} className="task-item" style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <span className="badge badge-blue" style={{ flexShrink: 0, fontSize: '9px', padding: '2px 5px' }}>{h.trauma_center ? 'Apex Trauma' : 'General'}</span>
+                <div className="task-content" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <div className="task-name" style={{ fontSize: '11.5px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={h.name}>{h.name}</div>
+                  <div className="task-meta" style={{ fontSize: '10.5px', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {h.beds_available} surge beds ({h.icu_beds_available || 15} ICU) · {h.distance_km} km away
+                  </div>
+                </div>
+                {renderFacilityActions(h, 'medical_health', 'green')}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tab 2: Fire Stations */}
+        {activeTab === 'fire' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {fireStations.map((f, i) => (
+              <div key={i} className="task-item" style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <span className="badge badge-orange" style={{ flexShrink: 0, fontSize: '9px', padding: '2px 5px' }}>{f.tenders} Tenders</span>
+                <div className="task-content" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <div className="task-name" style={{ fontSize: '11.5px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={f.name}>{f.name}</div>
+                  <div className="task-meta" style={{ fontSize: '10.5px', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {f.dewatering_pumps} dewatering pumps · {f.personnel} firefighters · {f.distance_km} km away
+                  </div>
+                </div>
+                {renderFacilityActions(f, 'fire_service', 'orange')}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tab 3: Police Stations */}
+        {activeTab === 'police' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {policeStations.map((p, i) => (
+              <div key={i} className="task-item" style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <span className="badge badge-blue" style={{ flexShrink: 0, fontSize: '9px', padding: '2px 5px' }}>{p.green_corridor_squads} Corridors</span>
+                <div className="task-content" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <div className="task-name" style={{ fontSize: '11.5px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.name}>{p.name}</div>
+                  <div className="task-meta" style={{ fontSize: '10.5px', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {p.officers} mobilized officers · {p.patrol_vehicles} vehicles · {p.distance_km} km away
+                  </div>
+                </div>
+                {renderFacilityActions(p, 'police_department', 'blue')}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tab 4: USAR & Specialized Rescue */}
+        {activeTab === 'rescue' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {rescueBases.map((r, i) => (
+              <div key={i} className="task-item" style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <span className="badge badge-yellow" style={{ flexShrink: 0, fontSize: '9px', padding: '2px 5px' }}>USAR Unit</span>
+                <div className="task-content" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <div className="task-name" style={{ fontSize: '11.5px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.name}>{r.name}</div>
+                  <div className="task-meta" style={{ fontSize: '10.5px', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {r.personnel} operators · {(r.equipment || []).slice(0, 2).join(', ')} · {r.distance_km} km away
+                  </div>
+                </div>
+                {renderFacilityActions(r, 'rescue_ndrf', 'yellow')}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tab 5: Civil Defense & EOC */}
+        {activeTab === 'inquest' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {investigationUnits.map((u, i) => (
+              <div key={i} className="task-item" style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <span className="badge badge-purple" style={{ flexShrink: 0, fontSize: '9px', padding: '2px 5px' }}>Ops Command</span>
+                <div className="task-content" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <div className="task-name" style={{ fontSize: '11.5px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={u.name}>{u.name}</div>
+                  <div className="task-meta" style={{ fontSize: '10.5px', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {u.role} · {u.officers} coordinators · {u.distance_km} km away
+                  </div>
+                </div>
+                {renderFacilityActions(u, 'investigation_forensic', 'purple')}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tab 6: Shelters */}
+        {activeTab === 'shelters' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {shelters.map((s, i) => (
+              <div key={i} className="task-item" style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                <span className="badge badge-blue" style={{ flexShrink: 0, fontSize: '9px', padding: '2px 5px' }}>Cap: {s.capacity.toLocaleString()}</span>
+                <div className="task-content" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <div className="task-name" style={{ fontSize: '11.5px', fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={s.name}>{s.name}</div>
+                  <div className="task-meta" style={{ fontSize: '10.5px', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {(s.facilities || []).slice(0, 2).join(', ')} · {s.distance_km || 3.5} km away
+                  </div>
+                </div>
+                {renderFacilityActions(s, 'district_administration', 'blue')}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Critical Gaps Alert */}
         {(data?.critical_gaps || []).length > 0 && (
           <div style={{ marginTop: '10px', padding: '8px', background: 'rgba(239,68,68,0.08)', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.2)' }}>
             <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--accent-red)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -238,6 +569,33 @@ function ResourceCard({ data }) {
             {data.critical_gaps.map((g, i) => <div key={i} style={{ fontSize: '12px', color: 'var(--text-muted)' }}>• {g}</div>)}
           </div>
         )}
+
+        {/* Master Dispatch Directive Trigger Button */}
+        {onOpenDispatch && (
+          <button
+            onClick={() => onOpenDispatch()}
+            style={{
+              marginTop: '12px',
+              width: '100%',
+              padding: '9px 12px',
+              background: 'linear-gradient(135deg, rgba(239,68,68,0.2) 0%, rgba(249,115,22,0.25) 100%)',
+              border: '1px solid #ef4444',
+              color: '#fca5a5',
+              borderRadius: '7px',
+              fontSize: '11px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              letterSpacing: '0.04em',
+            }}
+          >
+            <Send size={13} />
+            SEND ROLE-TAILORED RESCUE DIRECTIVE TO ALL CADRES
+          </button>
+        )}
       </div>
     </TiltCard>
   )
@@ -245,48 +603,223 @@ function ResourceCard({ data }) {
 
 function AlertCard({ data }) {
   const [lang, setLang] = useState('english')
+  const [copiedBroadcast, setCopiedBroadcast] = useState(false)
+  const [copiedSms, setCopiedSms] = useState(false)
+  const [cellBroadcastSent, setCellBroadcastSent] = useState(false)
+  const [helplineToast, setHelplineToast] = useState(null)
+
   const publicAlert = data?.public_alert || {}
+  const langKeyMap = {
+    english: 'primary',
+    hindi: 'secondary',
+    regional: 'tertiary',
+  }
+  const langLabels = data?.language_meta?.lang_labels || {}
+  const getTabLabel = (l) => {
+    const metaKey = langKeyMap[l]
+    if (langLabels[metaKey]) return langLabels[metaKey]
+    if (langLabels[l]) return langLabels[l]
+    return l === 'english' ? 'EN (PRIMARY)' : l === 'hindi' ? 'REGIONAL / SECONDARY' : 'EAS / CELL BROADCAST'
+  }
+
+  const handleCopyBroadcast = () => {
+    const text = publicAlert[lang] || 'Emergency broadcast active.'
+    navigator.clipboard?.writeText(text)
+    setCopiedBroadcast(true)
+    playTelemetryBeep(1200)
+    setTimeout(() => setCopiedBroadcast(false), 2200)
+  }
+
+  const handleCopySms = () => {
+    const text = data?.sms_alert?.english || 'ALERT: Evacuate immediately.'
+    navigator.clipboard?.writeText(text)
+    setCopiedSms(true)
+    playTelemetryBeep(1200)
+    setTimeout(() => setCopiedSms(false), 2200)
+  }
+
+  const handleCellBroadcast = () => {
+    setCellBroadcastSent(true)
+    playTelemetryBeep(1760) // High urgency alert tone
+    setTimeout(() => playTelemetryBeep(880), 120)
+    setTimeout(() => setCellBroadcastSent(false), 5000)
+  }
+
+  const handleHelplineClick = (k, v) => {
+    navigator.clipboard?.writeText(v)
+    setHelplineToast(`${k.toUpperCase()}: ${v} copied`)
+    playTelemetryBeep(1046)
+    setTimeout(() => setHelplineToast(null), 2500)
+  }
 
   return (
     <TiltCard>
-      <div className="result-card" style={{ height: '100%' }}>
+      <div className="result-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div className="result-card-header">
           <div className="result-card-icon" style={{ background: 'rgba(234,179,8,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Radio size={18} color="#eab308" />
           </div>
           <div>
             <div className="result-card-title">Emergency Communications</div>
-            <div className="result-card-subtitle">Multilingual Broadcast Engine</div>
+            <div className="result-card-subtitle">Multilingual Broadcast & CAP v1.2 Engine</div>
           </div>
           <span className="badge badge-red" style={{ marginLeft: 'auto' }}>{data?.official_communication?.priority || 'URGENT'}</span>
         </div>
 
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+        {/* Dynamic Regional Language Tabs */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
           {['english', 'hindi', 'regional'].map(l => (
-            <button key={l} onClick={() => setLang(l)} className="severity-btn" data-level={l === lang ? 'CRITICAL' : ''} style={{ flex: 1, padding: '6px 4px', fontSize: '11px', fontWeight: '600' }}>
-              {l === 'english' ? 'EN (INTERNATIONAL)' : l === 'hindi' ? 'HI (DEVNAGARI)' : 'REGIONAL (VERNACULAR)'}
+            <button
+              key={l}
+              onClick={() => { setLang(l); playTelemetryBeep(980); }}
+              className="severity-btn"
+              data-level={l === lang ? 'CRITICAL' : ''}
+              style={{
+                flex: 1,
+                padding: '6px 4px',
+                fontSize: '10px',
+                fontWeight: '700',
+                cursor: 'pointer',
+              }}
+            >
+              {getTabLabel(l)}
             </button>
           ))}
         </div>
 
-        <div className={`alert-box ${lang}`}>{publicAlert[lang] || 'Emergency broadcast active.'}</div>
-
-        <div style={{ marginTop: '10px' }}>
-          <div className="alert-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Smartphone size={13} /> 160-Char Emergency SMS Broadcast
+        {/* Broadcast Text Box with Action Controls */}
+        <div style={{ position: 'relative' }}>
+          <div className={`alert-box ${lang}`} style={{ minHeight: '90px', paddingRight: '48px' }}>
+            {publicAlert[lang] || 'Emergency broadcast active for this region.'}
           </div>
-          <div className="alert-box" style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', letterSpacing: '0.02em', background: 'rgba(0,0,0,0.5)' }}>
-            {data?.sms_alert?.english || 'ALERT: Evacuate immediately to designated shelter.'}
+          <button
+            onClick={handleCopyBroadcast}
+            title="Copy Public Alert"
+            style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              background: 'rgba(0,0,0,0.6)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '4px',
+              color: copiedBroadcast ? '#10b981' : '#e2e8f0',
+              padding: '4px 6px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              fontSize: '10px',
+              fontWeight: '600',
+            }}
+          >
+            {copiedBroadcast ? <CheckCheck size={12} color="#10b981" /> : <Copy size={12} />}
+            {copiedBroadcast ? 'COPIED' : 'COPY'}
+          </button>
+        </div>
+
+        {/* SMS Broadcast Box with Action Controls */}
+        <div style={{ marginTop: '10px' }}>
+          <div className="alert-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Smartphone size={13} /> 160-Char Emergency SMS Broadcast
+            </span>
+            <button
+              onClick={handleCopySms}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: copiedSms ? '#10b981' : 'var(--accent-cyan)',
+                cursor: 'pointer',
+                fontSize: '10px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: 0,
+              }}
+            >
+              {copiedSms ? <Check size={11} /> : <Copy size={11} />}
+              {copiedSms ? 'COPIED' : 'COPY SMS'}
+            </button>
+          </div>
+          <div className="alert-box" style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.02em', background: 'rgba(0,0,0,0.5)', marginTop: '4px' }}>
+            {data?.sms_alert?.english || 'ALERT: Evacuate immediately to designated civil shelter.'}
           </div>
         </div>
 
+        {/* Cell Broadcast / EAS Emergency Alert Button */}
         <div style={{ marginTop: '10px' }}>
-          <div className="alert-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Phone size={13} /> Emergency Helplines
+          <button
+            type="button"
+            onClick={handleCellBroadcast}
+            style={{
+              width: '100%',
+              padding: '8px 10px',
+              background: cellBroadcastSent
+                ? 'linear-gradient(135deg, rgba(16,185,129,0.25) 0%, rgba(6,182,212,0.2) 100%)'
+                : 'linear-gradient(135deg, rgba(234,179,8,0.18) 0%, rgba(249,115,22,0.2) 100%)',
+              border: cellBroadcastSent ? '1px solid #10b981' : '1px solid rgba(234,179,8,0.4)',
+              color: cellBroadcastSent ? '#34d399' : '#fde047',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              letterSpacing: '0.03em',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {cellBroadcastSent ? (
+              <>
+                <CheckCheck size={14} color="#34d399" />
+                ✓ BROADCAST TRANSMITTED ACROSS CELL TOWERS (WEA / CAP v1.2)
+              </>
+            ) : (
+              <>
+                <Siren size={14} />
+                TRANSMIT CELL BROADCAST TO ALL TOWER SECTORS (WEA / EAS)
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Emergency Helplines (Click-to-call / Click-to-copy) */}
+        <div style={{ marginTop: '10px' }}>
+          <div className="alert-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Phone size={13} /> Emergency Helplines (Click to Call / Copy)
+            </span>
+            {helplineToast && (
+              <span style={{ fontSize: '10px', color: '#10b981', fontWeight: '700' }}>{helplineToast}</span>
+            )}
           </div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
             {Object.entries(data?.media_advisory?.key_numbers || {}).map(([k, v]) => (
-              <span key={k} className="badge badge-blue">{k.toUpperCase()}: {v}</span>
+              <button
+                key={k}
+                type="button"
+                onClick={() => handleHelplineClick(k, v)}
+                className="badge badge-blue"
+                title={`Call or copy ${k}: ${v}`}
+                style={{
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  background: 'rgba(56, 189, 248, 0.1)',
+                  cursor: 'pointer',
+                  padding: '4px 8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  borderRadius: '4px',
+                }}
+              >
+                <Phone size={10} color="#38bdf8" />
+                <span>{k.toUpperCase()}: <strong style={{ color: '#ffffff' }}>{v}</strong></span>
+              </button>
             ))}
           </div>
         </div>
@@ -296,6 +829,51 @@ function AlertCard({ data }) {
 }
 
 function ResponsePlanCard({ data }) {
+  const [taskStatus, setTaskStatus] = useState({})
+  const [allDeployed, setAllDeployed] = useState(false)
+  const [exported, setExported] = useState(false)
+
+  const priorityTasks = data?.priority_tasks || []
+
+  const toggleTask = (index) => {
+    playTelemetryBeep(1100)
+    setTaskStatus(prev => {
+      const current = prev[index] || 'pending'
+      const next = current === 'pending' ? 'in_progress' : current === 'in_progress' ? 'completed' : 'pending'
+      return { ...prev, [index]: next }
+    })
+  }
+
+  const handleDeployAll = () => {
+    playTelemetryBeep(1400)
+    const newStatus = {}
+    priorityTasks.forEach((_, i) => {
+      newStatus[i] = 'in_progress'
+    })
+    setTaskStatus(newStatus)
+    setAllDeployed(true)
+    setTimeout(() => setAllDeployed(false), 4000)
+  }
+
+  const handleExportPlan = () => {
+    playTelemetryBeep(1200)
+    const planText = `
+CRISISGUARD AI — INCIDENT ACTION PLAN (ICS-201)
+OPERATIONAL ALERT LEVEL: ${data?.operational_status?.alert_level || 'RED'}
+ESTIMATED LIVES AT RISK: ${(data?.estimated_lives_at_risk || 0).toLocaleString()}
+ESTIMATED LIVES PROTECTED: ${(data?.lives_potentially_saved_with_plan || 0).toLocaleString()}
+INCIDENT COMMANDER DIRECTIVE:
+${data?.commander_briefing || 'N/A'}
+
+PRIORITY ACTION MATRIX:
+${priorityTasks.map(t => `[P${t.priority}] ${t.task} — Assigned: ${t.responsible} | Deadline: ${t.deadline}`).join('\n')}
+    `.trim()
+
+    navigator.clipboard?.writeText(planText)
+    setExported(true)
+    setTimeout(() => setExported(false), 3000)
+  }
+
   return (
     <TiltCard style={{ gridColumn: 'span 2' }}>
       <div className="result-card" style={{ height: '100%' }}>
@@ -305,7 +883,7 @@ function ResponsePlanCard({ data }) {
           </div>
           <div>
             <div className="result-card-title">Response Operations Playbook</div>
-            <div className="result-card-subtitle">Prioritized Multi-Track Incident Command System</div>
+            <div className="result-card-subtitle">Prioritized Multi-Track Incident Command System (ICS-201)</div>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span className={`badge badge-${data?.operational_status?.alert_level === 'RED' ? 'red' : 'orange'}`} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -335,22 +913,137 @@ function ResponsePlanCard({ data }) {
           </div>
         </div>
 
-        {/* Priority Tasks */}
-        <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Activity size={14} className="icon" /> PRIORITY ACTION MATRIX
-        </div>
-        {(data?.priority_tasks || []).map((task, i) => (
-          <div key={i} className="task-item">
-            <div className="task-priority" style={{ fontFamily: 'var(--font-mono)' }}>{task.priority}</div>
-            <div className="task-content">
-              <div className="task-name">{task.task}</div>
-              <div className="task-meta">{task.responsible} · Deadline: {task.deadline}</div>
-            </div>
-            <span className={`badge badge-${task.priority <= 2 ? 'red' : task.priority <= 3 ? 'orange' : 'blue'}`}>
-              {task.priority <= 2 ? 'P1 CRITICAL' : task.priority <= 3 ? 'P2 HIGH' : 'P3 MEDIUM'}
-            </span>
+        {/* Priority Action Matrix Header with Action Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+          <div className="section-header" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Activity size={14} className="icon" /> PRIORITY ACTION MATRIX
           </div>
-        ))}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={handleDeployAll}
+              className="badge"
+              style={{
+                border: '1px solid #10b981',
+                background: allDeployed ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.12)',
+                color: '#34d399',
+                padding: '5px 9px',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                borderRadius: '5px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              {allDeployed ? <CheckCheck size={12} /> : <Zap size={12} />}
+              {allDeployed ? 'ALL TASKS DISPATCHED' : 'DEPLOY ALL ICS DIRECTIVES'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExportPlan}
+              className="badge"
+              style={{
+                border: '1px solid rgba(0,240,255,0.4)',
+                background: exported ? 'rgba(0,240,255,0.25)' : 'rgba(0,240,255,0.08)',
+                color: '#00f0ff',
+                padding: '5px 9px',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                borderRadius: '5px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              {exported ? <Check size={12} /> : <Download size={12} />}
+              {exported ? 'COPIED TO CLIPBOARD' : 'EXPORT ICS-201 PLAN'}
+            </button>
+          </div>
+        </div>
+
+        {/* Priority Tasks with Clickable State Toggles */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {priorityTasks.map((task, i) => {
+            const status = taskStatus[i] || 'pending'
+            return (
+              <div
+                key={i}
+                className="task-item"
+                onClick={() => toggleTask(i)}
+                style={{
+                  cursor: 'pointer',
+                  border: status === 'completed'
+                    ? '1px solid rgba(16,185,129,0.4)'
+                    : status === 'in_progress'
+                    ? '1px solid rgba(234,179,8,0.4)'
+                    : '1px solid rgba(255,255,255,0.08)',
+                  background: status === 'completed'
+                    ? 'rgba(16,185,129,0.06)'
+                    : status === 'in_progress'
+                    ? 'rgba(234,179,8,0.06)'
+                    : 'rgba(15,23,42,0.5)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div className="task-priority" style={{ fontFamily: 'var(--font-mono)' }}>
+                  {task.priority}
+                </div>
+                <div className="task-content">
+                  <div className="task-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ textDecoration: status === 'completed' ? 'line-through' : 'none' }}>
+                      {task.task}
+                    </span>
+                  </div>
+                  <div className="task-meta">{task.responsible} · Deadline: {task.deadline}</div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className={`badge badge-${task.priority <= 2 ? 'red' : task.priority <= 3 ? 'orange' : 'blue'}`}>
+                    {task.priority <= 2 ? 'P1 CRITICAL' : task.priority <= 3 ? 'P2 HIGH' : 'P3 MEDIUM'}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleTask(i)
+                    }}
+                    className={`badge badge-${status === 'completed' ? 'green' : status === 'in_progress' ? 'yellow' : 'blue'}`}
+                    style={{
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px 8px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    {status === 'completed' ? (
+                      <>
+                        <Check size={11} /> VERIFIED
+                      </>
+                    ) : status === 'in_progress' ? (
+                      <>
+                        <Zap size={11} /> IN PROGRESS
+                      </>
+                    ) : (
+                      <>
+                        <Send size={11} /> DISPATCH
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </TiltCard>
   )
@@ -407,9 +1100,9 @@ function HumanEscalationCard({ data }) {
 
 export default function App() {
   const [disasterType, setDisasterType] = useState('cyclone')
-  const [location, setLocation] = useState('')
-  const [severity, setSeverity] = useState('HIGH')
-  const [description, setDescription] = useState('')
+  const [location, setLocation] = useState('Bhubaneswar, Odisha')
+  const [severity, setSeverity] = useState('CRITICAL')
+  const [description, setDescription] = useState('Category 4 cyclone approaching coastal Odisha. Winds at 180 km/h. Severe storm surge expected.')
   const [isRunning, setIsRunning] = useState(false)
   const [events, setEvents] = useState([])
   const [results, setResults] = useState(null)
@@ -418,7 +1111,16 @@ export default function App() {
   const [activeCoords, setActiveCoords] = useState({ lat: 20.2724, lng: 85.8338 })
   const [liveTelemetry, setLiveTelemetry] = useState(null)
   const [liveHazards, setLiveHazards] = useState([])
+  const [showDispatchModal, setShowDispatchModal] = useState(false)
+  const [dispatchInitialAgency, setDispatchInitialAgency] = useState('rescue_ndrf')
+  const [scenarioFilter, setScenarioFilter] = useState('ALL')
+  const [locateTarget, setLocateTarget] = useState(null)
   const wsRef = useRef(null)
+
+  const handleOpenDispatch = (agencyKey = null) => {
+    if (agencyKey) setDispatchInitialAgency(agencyKey)
+    setShowDispatchModal(true)
+  }
 
   // Fetch live hazards from NASA/USGS on mount
   useEffect(() => {
@@ -442,19 +1144,29 @@ export default function App() {
     wsRef.current = ws
   }, [])
 
-  const loadScenario = (scenario) => {
+  const loadScenario = (scenario, autoRun = true) => {
     setDisasterType(scenario.type)
     setLocation(scenario.location)
     setSeverity(scenario.severity)
     setDescription(scenario.desc)
 
-    // Set sample coordinates
-    if (scenario.location.includes('Bhubaneswar')) {
-      setActiveCoords({ lat: 20.2961, lng: 85.8245 })
-    } else if (scenario.location.includes('Wayanad')) {
-      setActiveCoords({ lat: 11.6854, lng: 76.1320 })
-    } else if (scenario.location.includes('Delhi')) {
-      setActiveCoords({ lat: 28.6139, lng: 77.2090 })
+    const targetCoords = scenario.coords || (
+      scenario.location.includes('Bhubaneswar') ? { lat: 20.2961, lng: 85.8245 } :
+      scenario.location.includes('Wayanad') ? { lat: 11.6854, lng: 76.1320 } :
+      scenario.location.includes('Delhi') ? { lat: 28.6139, lng: 77.2090 } :
+      { lat: 20.2724, lng: 85.8338 }
+    )
+    setActiveCoords(targetCoords)
+    playTelemetryBeep(1046)
+
+    if (autoRun) {
+      executeAnalysis({
+        disasterType: scenario.type,
+        location: scenario.location,
+        severity: scenario.severity,
+        description: scenario.desc,
+        coordinates: targetCoords,
+      })
     }
   }
 
@@ -463,16 +1175,28 @@ export default function App() {
     const epicType = disasterType || 'cyclone'
     const epicSeverity = severity || 'CRITICAL'
     const epicDesc = description || 'Category 4 cyclone approaching coastal Odisha. Winds at 180 km/h. Severe storm surge expected.'
+    const epicCoords = activeCoords || { lat: 20.2724, lng: 85.8338 }
 
     setLocation(epicLocation)
     setDisasterType(epicType)
     setSeverity(epicSeverity)
     setDescription(epicDesc)
-    setActiveCoords(prev => prev || { lat: 20.2724, lng: 85.8338 })
+    setActiveCoords(epicCoords)
     playTelemetryBeep(1200)
+
+    // Auto-trigger analysis if not already running
+    if (!isRunning) {
+      executeAnalysis({
+        disasterType: epicType,
+        location: epicLocation,
+        severity: epicSeverity,
+        description: epicDesc,
+        coordinates: epicCoords,
+      })
+    }
   }
 
-  const handleSelectHazard = (ev, autoRun = false) => {
+  const handleSelectHazard = (ev, autoRun = true) => {
     let dtype = 'earthquake'
     if (ev.category === 'Wildfires') dtype = 'heatwave'
     else if (ev.title.includes('Typhoon') || ev.title.includes('Cyclone') || ev.title.includes('Storm')) dtype = 'cyclone'
@@ -534,6 +1258,7 @@ export default function App() {
           severity: targetSeverity,
           description: targetDescription,
           session_id: sid,
+          coordinates: targetCoords || null,
         }),
       })
       const data = await res.json()
@@ -563,7 +1288,7 @@ export default function App() {
   return (
     <div className="app-container">
       {/* 1. Real-time Live Global Hazard Marquee (NASA EONET & USGS) */}
-      <LiveDisasterTicker onSelectEvent={(ev) => handleSelectHazard(ev, false)} />
+      <LiveDisasterTicker onSelectEvent={(ev) => handleSelectHazard(ev, true)} />
 
       {/* Header */}
       <header className="app-header" style={{
@@ -598,10 +1323,42 @@ export default function App() {
       {/* Stats bar when results exist */}
       {stats && (
         <motion.div className="stats-bar" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="stat-item"><div className="stat-value critical">{stats.pop.toLocaleString()}</div><div className="stat-label">Population at Risk</div></div>
-          <div className="stat-item"><div className="stat-value" style={{ color: 'var(--accent-blue)' }}>{stats.resources}</div><div className="stat-label">Verified Facilities Mapped</div></div>
-          <div className="stat-item"><div className="stat-value" style={{ color: 'var(--accent-orange)' }}>{stats.tasks}</div><div className="stat-label">Active ICS Tasks</div></div>
-          <div className="stat-item"><div className="stat-value" style={{ color: 'var(--accent-green)' }}>{stats.score}%</div><div className="stat-label">Response Effectiveness</div></div>
+          <div
+            className="stat-item"
+            style={{ cursor: 'pointer' }}
+            title="Jump to GIS Threat & Intelligence Assessment"
+            onClick={() => document.getElementById('card-intelligence')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            <div className="stat-value critical">{stats.pop.toLocaleString()}</div>
+            <div className="stat-label">Population at Risk ↗</div>
+          </div>
+          <div
+            className="stat-item"
+            style={{ cursor: 'pointer' }}
+            title="Jump to Verified Inter-Agency Infrastructure"
+            onClick={() => document.getElementById('card-resources')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            <div className="stat-value" style={{ color: 'var(--accent-blue)' }}>{stats.resources}</div>
+            <div className="stat-label">Verified Facilities Mapped ↗</div>
+          </div>
+          <div
+            className="stat-item"
+            style={{ cursor: 'pointer' }}
+            title="Jump to Active ICS Priority Tasks"
+            onClick={() => document.getElementById('card-response-plan')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            <div className="stat-value" style={{ color: 'var(--accent-orange)' }}>{stats.tasks}</div>
+            <div className="stat-label">Active ICS Tasks ↗</div>
+          </div>
+          <div
+            className="stat-item"
+            style={{ cursor: 'pointer' }}
+            title="Jump to Human Authorization & Verification"
+            onClick={() => document.getElementById('card-escalation')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            <div className="stat-value" style={{ color: 'var(--accent-green)' }}>{stats.score}%</div>
+            <div className="stat-label">Response Effectiveness ↗</div>
+          </div>
         </motion.div>
       )}
 
@@ -687,32 +1444,78 @@ export default function App() {
             </button>
           </div>
 
-          {/* Preset Sample Scenarios */}
+          {/* Preset Sample Scenarios with Region Filter */}
           <div>
-            <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <FileText size={14} className="icon" /> REGIONAL INCIDENT SCENARIOS
+            <div className="section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Globe size={14} className="icon" /> GLOBAL INCIDENT SCENARIOS
+              </span>
+              <span className="badge badge-blue" style={{ fontSize: '9px', padding: '2px 6px' }}>1-CLICK EXECUTE</span>
             </div>
-            {SAMPLE_SCENARIOS.map((s, i) => {
-              const IconComp = s.icon
-              return (
-                <motion.div
-                  key={i}
-                  whileHover={{ scale: 1.01, x: 2 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="scenario-card"
-                  onClick={() => loadScenario(s)}
+
+            {/* Continent / Region Filter Tabs */}
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '10px', flexWrap: 'wrap' }}>
+              {['ALL', 'GLOBAL', 'AMERICAS', 'ASIA-PACIFIC', 'EUROPE', 'INDIA'].map(tab => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setScenarioFilter(tab)}
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: '700',
+                    fontFamily: 'var(--font-mono)',
+                    padding: '3px 7px',
+                    borderRadius: '4px',
+                    border: scenarioFilter === tab ? '1px solid #00f0ff' : '1px solid rgba(255,255,255,0.08)',
+                    background: scenarioFilter === tab ? 'rgba(0, 240, 255, 0.15)' : 'rgba(15, 23, 42, 0.6)',
+                    color: scenarioFilter === tab ? '#00f0ff' : '#94a3b8',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
                 >
-                  <div className="scenario-icon-box">
-                    <IconComp size={16} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div className="scenario-title">{s.title}</div>
-                    <div className="scenario-sub">{s.severity} · Click to auto-load</div>
-                  </div>
-                  <ChevronRight size={13} style={{ color: 'var(--text-muted)' }} />
-                </motion.div>
-              )
-            })}
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {/* Filtered Scenario List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {SAMPLE_SCENARIOS
+                .filter(s => {
+                  if (scenarioFilter === 'ALL') return true
+                  if (scenarioFilter === 'GLOBAL') return s.region !== 'INDIA'
+                  return s.region === scenarioFilter
+                })
+                .map((s, i) => {
+                  const IconComp = s.icon
+                  return (
+                    <motion.div
+                      key={s.title}
+                      whileHover={{ scale: 1.01, x: 2 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="scenario-card"
+                      onClick={() => loadScenario(s, true)}
+                    >
+                      <div className="scenario-icon-box">
+                        <IconComp size={16} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="scenario-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>{s.title}</span>
+                        </div>
+                        <div className="scenario-sub" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                          <span className={`badge badge-${s.severity === 'CRITICAL' ? 'red' : 'orange'}`} style={{ fontSize: '9px', padding: '1px 5px' }}>
+                            {s.severity}
+                          </span>
+                          <span style={{ color: '#00f0ff', fontSize: '10px' }}>{s.region}</span>
+                          <span style={{ color: '#94a3b8', fontSize: '10px' }}>· Click to launch</span>
+                        </div>
+                      </div>
+                      <ChevronRight size={13} style={{ color: 'var(--text-muted)' }} />
+                    </motion.div>
+                  )
+                })}
+            </div>
           </div>
         </div>
 
@@ -735,8 +1538,13 @@ export default function App() {
             location={location}
             description={description}
             severity={severity}
+            locateTarget={locateTarget}
             hospitals={results?.resources?.hospitals || []}
             shelters={results?.resources?.shelters || []}
+            fireStations={results?.resources?.fire_stations || []}
+            policeStations={results?.resources?.police_stations || []}
+            rescueBases={results?.resources?.rescue_bases || []}
+            investigationUnits={results?.resources?.investigation_units || []}
             disasterType={disasterType}
             liveEvents={liveHazards}
             results={results}
@@ -745,6 +1553,7 @@ export default function App() {
             onSelectEpicenter={handleSelectEpicenter}
             onSelectHazard={handleSelectHazard}
             onTriggerAnalysis={executeAnalysis}
+            onOpenDispatch={handleOpenDispatch}
           />
 
           {/* Live Telemetry Banner */}
@@ -821,15 +1630,84 @@ export default function App() {
             </div>
           ) : results && (
             <div className="results-panel">
-              {results.intelligence && <IntelligenceCard data={results.intelligence} />}
-              {results.resources && <ResourceCard data={results.resources} />}
-              {results.alerts && <AlertCard data={results.alerts} />}
-              {results.response_plan && <HumanEscalationCard data={results.response_plan} />}
-              {results.response_plan && <ResponsePlanCard data={results.response_plan} />}
+              {results.intelligence && (
+                <div id="card-intelligence">
+                  <IntelligenceCard data={results.intelligence} />
+                </div>
+              )}
+              {results.resources && (
+                <div id="card-resources">
+                  <ResourceCard
+                    data={results.resources}
+                    onOpenDispatch={handleOpenDispatch}
+                    onLocate={(target) => {
+                      setLocateTarget(target)
+                      playTelemetryBeep(1200)
+                    }}
+                  />
+                </div>
+              )}
+              {results.alerts && (
+                <div id="card-alerts">
+                  <AlertCard data={results.alerts} />
+                </div>
+              )}
+              {results.response_plan && (
+                <div id="card-escalation">
+                  <HumanEscalationCard data={results.response_plan} />
+                </div>
+              )}
+              {results.response_plan && (
+                <div id="card-response-plan" style={{ gridColumn: '1 / -1' }}>
+                  <ResponsePlanCard data={results.response_plan} />
+                </div>
+              )}
+
+              {/* Multi-Agency Dispatch CTA */}
+              {results.agency_dispatches && (
+                <motion.div
+                  className="dispatch-cta-banner"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  style={{ gridColumn: '1 / -1' }}
+                >
+                  <div className="dispatch-cta-left">
+                    <div className="dispatch-cta-pulse">
+                      <ShieldAlert size={22} color="#ef4444" />
+                    </div>
+                    <div>
+                      <div className="dispatch-cta-title">MULTI-AGENCY RESCUE DISPATCH READY</div>
+                      <div className="dispatch-cta-sub">
+                        {Object.keys(results.agency_dispatches?.agencies || {}).length} agencies identified · Role-specific directives generated · CAP v1.2 broadcast ready
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    className="dispatch-cta-btn"
+                    onClick={() => handleOpenDispatch()}
+                  >
+                    <Send size={15} />
+                    OPEN DISPATCH CONSOLE
+                  </button>
+                </motion.div>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Multi-Agency Dispatch Modal */}
+      <AgencyDispatchModal
+        isOpen={showDispatchModal}
+        onClose={() => setShowDispatchModal(false)}
+        dispatchPackage={results?.agency_dispatches}
+        disasterType={disasterType}
+        location={location}
+        severity={severity}
+        coordinates={activeCoords}
+        initialAgencyKey={dispatchInitialAgency}
+      />
     </div>
   )
 }

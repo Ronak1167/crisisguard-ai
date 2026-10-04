@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Loader2,
   ShieldCheck,
+  Send,
 } from 'lucide-react'
 
 // Fix default leaflet marker icon paths in Vite
@@ -32,6 +33,10 @@ L.Icon.Default.mergeOptions({
 const SVG_ICONS = {
   epicenter: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
   hospital: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+  fire: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`,
+  police: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  rescue: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/></svg>`,
+  investigation: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
   shelter: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
   event: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
 }
@@ -81,22 +86,45 @@ const createPulseIcon = (iconType, color, label) => {
 /**
  * Controller to handle movie-style flyTo and flyToBounds animations,
  * plus reporting altitude and zoom level to the HUD just like Google Earth.
+ * FIX: `map` removed from useEffect deps — useMap() returns a stable instance per
+ * the react-leaflet contract. Adding it caused an infinite re-render loop.
+ * FIX: onViewportChange stored in a ref so it never needs to be a dep.
  */
-function EarthCameraController({ coordinates, hospitals = [], shelters = [], onViewportChange }) {
+function EarthCameraController({
+  coordinates,
+  hospitals = [],
+  shelters = [],
+  fireStations = [],
+  policeStations = [],
+  rescueBases = [],
+  investigationUnits = [],
+  locateTarget = null,
+  onViewportChange
+}) {
   const map = useMap()
   const prevCoordRef = useRef(null)
   const prevFacilitiesLen = useRef(0)
+  // Stable ref for callback so we don't need it in deps
+  const onViewportChangeRef = useRef(onViewportChange)
+  useEffect(() => { onViewportChangeRef.current = onViewportChange })
+
+  // When a user clicks 'LOCATE ON MAP' from any facility card, fly camera directly to it
+  useEffect(() => {
+    if (locateTarget && locateTarget.lat && locateTarget.lng) {
+      map.flyTo([locateTarget.lat, locateTarget.lng], 16, { duration: 1.8 })
+    }
+  }, [locateTarget, map])
 
   // Listen to zoom and move events to update Google Earth HUD telemetry
   useMapEvents({
     zoomend: () => {
-      if (onViewportChange) {
-        onViewportChange(map.getZoom(), map.getCenter())
+      if (onViewportChangeRef.current) {
+        onViewportChangeRef.current(map.getZoom(), map.getCenter())
       }
     },
     moveend: () => {
-      if (onViewportChange) {
-        onViewportChange(map.getZoom(), map.getCenter())
+      if (onViewportChangeRef.current) {
+        onViewportChangeRef.current(map.getZoom(), map.getCenter())
       }
     },
   })
@@ -108,24 +136,42 @@ function EarthCameraController({ coordinates, hospitals = [], shelters = [], onV
 
     const coordKey = `${lat.toFixed(4)},${lng.toFixed(4)}`
     const isNewLocation = prevCoordRef.current !== coordKey
-    const facilitiesLen = hospitals.length + shelters.length
+    const facilitiesLen =
+      hospitals.length +
+      shelters.length +
+      fireStations.length +
+      policeStations.length +
+      rescueBases.length +
+      investigationUnits.length
     const hasNewFacilities = facilitiesLen > 0 && facilitiesLen !== prevFacilitiesLen.current
 
     if (isNewLocation) {
       prevCoordRef.current = coordKey
-      // Movie-style zoom in directly to the incident epicenter
       map.flyTo([lat, lng], 13, { duration: 2.2, easeLinearity: 0.25 })
     } else if (hasNewFacilities) {
       prevFacilitiesLen.current = facilitiesLen
-      // Multiple facilities discovered: Movie-style zoom out to encompass all assets
       const allPoints = [[lat, lng]]
       hospitals.forEach((h) => { if (h.lat && h.lng) allPoints.push([h.lat, h.lng]) })
       shelters.forEach((s) => { if (s.lat && s.lng) allPoints.push([s.lat, s.lng]) })
-
+      fireStations.forEach((f) => { if (f.lat && f.lng) allPoints.push([f.lat, f.lng]) })
+      policeStations.forEach((p) => { if (p.lat && p.lng) allPoints.push([p.lat, p.lng]) })
+      rescueBases.forEach((r) => { if (r.lat && r.lng) allPoints.push([r.lat, r.lng]) })
+      investigationUnits.forEach((u) => { if (u.lat && u.lng) allPoints.push([u.lat, u.lng]) })
       const bounds = L.latLngBounds(allPoints)
       map.flyToBounds(bounds, { padding: [60, 60], duration: 2.6, maxZoom: 13 })
     }
-  }, [coordinates?.lat, coordinates?.lng, hospitals.length, shelters.length, map])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    coordinates?.lat,
+    coordinates?.lng,
+    hospitals.length,
+    shelters.length,
+    fireStations.length,
+    policeStations.length,
+    rescueBases.length,
+    investigationUnits.length,
+    // map intentionally omitted — useMap() instance is stable per react-leaflet contract
+  ])
 
   return null
 }
@@ -137,6 +183,11 @@ export default function GoogleEarthMap({
   severity = 'HIGH',
   hospitals = [],
   shelters = [],
+  fireStations = [],
+  policeStations = [],
+  rescueBases = [],
+  investigationUnits = [],
+  locateTarget = null,
   disasterType = 'cyclone',
   liveEvents = [],
   results = null,
@@ -145,6 +196,7 @@ export default function GoogleEarthMap({
   onSelectEpicenter,
   onSelectHazard,
   onTriggerAnalysis,
+  onOpenDispatch,
 }) {
   const mapRef = useRef(null)
   const [mapLayer, setMapLayer] = useState('hybrid') // 'satellite' | 'hybrid' | 'tactical'
@@ -210,6 +262,14 @@ export default function GoogleEarthMap({
 
   const epicenterIcon = useMemo(() => createPulseIcon('epicenter', '#ef4444', 'EPICENTER'), [])
 
+  // Stable viewport-change callback — avoids creating new function on every render
+  // which was causing EarthCameraController to re-run its event registration
+  const handleViewportChange = useCallback((z, c) => {
+    setCurrentZoom(z)
+    setCurrentCenter(c)
+  }, [])
+
+
   // World bounds to strictly prevent panning into the infinite void
   const worldBounds = useMemo(() => [
     [-85, -180],
@@ -252,10 +312,12 @@ export default function GoogleEarthMap({
           coordinates={coordinates}
           hospitals={hospitals}
           shelters={shelters}
-          onViewportChange={(z, c) => {
-            setCurrentZoom(z)
-            setCurrentCenter(c)
-          }}
+          fireStations={fireStations}
+          policeStations={policeStations}
+          rescueBases={rescueBases}
+          investigationUnits={investigationUnits}
+          locateTarget={locateTarget}
+          onViewportChange={handleViewportChange}
         />
 
         {/* 1. ESRI World Imagery (High-Res Photorealistic Satellite like Google Earth) */}
@@ -417,14 +479,32 @@ export default function GoogleEarthMap({
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '3px' }}>
-                    <span style={{ color: '#94a3b8' }}>Surge Beds Mapped:</span>
-                    <span style={{ fontWeight: '700', color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
+                    <span style={{ color: '#94a3b8' }}>Surge Beds & Hospitals:</span>
+                    <span style={{ fontWeight: '700', color: '#10b981', fontFamily: 'var(--font-mono)' }}>
                       {hospitals.reduce((s, h) => s + (h.beds_available || 0), 0)} beds ({hospitals.length} facilities)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '3px' }}>
+                    <span style={{ color: '#94a3b8' }}>Fire & HazMat Response:</span>
+                    <span style={{ fontWeight: '700', color: '#fb923c', fontFamily: 'var(--font-mono)' }}>
+                      {fireStations.length} stations ({fireStations.reduce((s, f) => s + (f.tenders || 0), 0)} tenders)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '3px' }}>
+                    <span style={{ color: '#94a3b8' }}>Police & Cordon Units:</span>
+                    <span style={{ fontWeight: '700', color: '#60a5fa', fontFamily: 'var(--font-mono)' }}>
+                      {policeStations.length} divisions ({policeStations.reduce((s, p) => s + (p.officers || 0), 0)} officers)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '3px' }}>
+                    <span style={{ color: '#94a3b8' }}>Specialized USAR & Inquest:</span>
+                    <span style={{ fontWeight: '700', color: '#facc15', fontFamily: 'var(--font-mono)' }}>
+                      {rescueBases.length} USAR bases · {investigationUnits.length} Forensic Units
                     </span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
                     <span style={{ color: '#94a3b8' }}>Estimated Protected:</span>
-                    <span style={{ fontWeight: '700', color: '#10b981', fontFamily: 'var(--font-mono)' }}>
+                    <span style={{ fontWeight: '700', color: '#00f0ff', fontFamily: 'var(--font-mono)' }}>
                       {(results.response_plan?.lives_potentially_saved_with_plan || 0).toLocaleString()} lives
                     </span>
                   </div>
@@ -439,6 +519,34 @@ export default function GoogleEarthMap({
                   >
                     <ShieldCheck size={12} /> VIEW COMPLETE INCIDENT ACTION PLAN (IAP)
                   </button>
+
+                  {results.agency_dispatches && onOpenDispatch && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenDispatch()
+                      }}
+                      style={{
+                        marginTop: '6px',
+                        width: '100%',
+                        padding: '7px 10px',
+                        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(249, 115, 22, 0.3) 100%)',
+                        border: '1px solid #ef4444',
+                        color: '#fca5a5',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        letterSpacing: '0.03em',
+                      }}
+                    >
+                      <Send size={12} /> OPEN MULTI-AGENCY DISPATCH CONSOLE
+                    </button>
+                  )}
                 </div>
               ) : isRunning ? (
                 <div className="popup-running-box">
@@ -511,14 +619,243 @@ export default function GoogleEarthMap({
               icon={createPulseIcon('hospital', '#10b981', h.name.split(' ')[0])}
             >
               <Popup>
-                <div style={{ color: '#0f172a', padding: '4px' }}>
+                <div style={{ color: '#0f172a', padding: '6px', minWidth: '220px' }}>
                   <div style={{ fontWeight: '800', color: '#10b981', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Building2 size={14} /> {h.name}
                   </div>
-                  <div style={{ marginTop: '4px' }}><strong>Status:</strong> <span style={{ color: '#059669', fontWeight: '700' }}>{h.status}</span></div>
-                  <div><strong>Surge Beds Available:</strong> <span style={{ color: '#0284c7', fontWeight: '800', fontSize: '13px' }}>{h.beds_available}</span> / {h.total_beds || 'N/A'}</div>
-                  <div><strong>Trauma Certified:</strong> {h.trauma_center ? 'Yes (Apex Trauma Center)' : 'Standard'}</div>
-                  <div><strong>Distance from Epicenter:</strong> {h.distance_km} km</div>
+                  <div style={{ marginTop: '4px', fontSize: '12px' }}><strong>Status:</strong> <span style={{ color: '#059669', fontWeight: '700' }}>{h.status}</span></div>
+                  <div style={{ fontSize: '12px' }}><strong>Surge Beds Available:</strong> <span style={{ color: '#0284c7', fontWeight: '800' }}>{h.beds_available}</span> / {h.total_beds || 'N/A'}</div>
+                  <div style={{ fontSize: '12px' }}><strong>ICU Surge Beds:</strong> <span style={{ color: '#ef4444', fontWeight: '700' }}>{h.icu_beds_available || 15}</span></div>
+                  <div style={{ fontSize: '12px' }}><strong>Trauma Certified:</strong> {h.trauma_center ? 'Yes (Apex Trauma Center)' : 'Standard'}</div>
+                  <div style={{ fontSize: '12px' }}><strong>Distance from Epicenter:</strong> {h.distance_km} km</div>
+                  {onOpenDispatch && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenDispatch('medical_health')
+                      }}
+                      style={{
+                        marginTop: '8px',
+                        width: '100%',
+                        padding: '5px 8px',
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <Send size={11} /> DISPATCH TRAUMA & EMS DIRECTIVE
+                    </button>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          )
+        ))}
+
+        {/* Verified Fire & Rescue Stations */}
+        {fireStations.map((f, i) => (
+          f.lat && f.lng && (
+            <Marker
+              key={`fire-${i}`}
+              position={[f.lat, f.lng]}
+              icon={createPulseIcon('fire', '#f97316', f.name.split(' ')[0])}
+            >
+              <Popup>
+                <div style={{ color: '#0f172a', padding: '6px', minWidth: '220px' }}>
+                  <div style={{ fontWeight: '800', color: '#ea580c', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertTriangle size={14} /> {f.name}
+                  </div>
+                  <div style={{ marginTop: '4px', fontSize: '12px' }}><strong>Cadre:</strong> {f.type}</div>
+                  <div style={{ fontSize: '12px' }}><strong>Fire Tenders:</strong> <span style={{ color: '#ea580c', fontWeight: '800' }}>{f.tenders}</span> units</div>
+                  <div style={{ fontSize: '12px' }}><strong>Dewatering Pumps:</strong> <span style={{ color: '#0284c7', fontWeight: '800' }}>{f.dewatering_pumps}</span> units</div>
+                  <div style={{ fontSize: '12px' }}><strong>Personnel:</strong> {f.personnel} active firefighters</div>
+                  <div style={{ fontSize: '12px' }}><strong>Chainsaw Units:</strong> {f.chainsaws || 8} crews</div>
+                  <div style={{ fontSize: '12px' }}><strong>Distance:</strong> {f.distance_km} km away</div>
+                  {onOpenDispatch && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenDispatch('fire_service')
+                      }}
+                      style={{
+                        marginTop: '8px',
+                        width: '100%',
+                        padding: '5px 8px',
+                        background: 'linear-gradient(135deg, #f97316, #c2410c)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <Send size={11} /> DISPATCH FIRE & RESCUE DIRECTIVE
+                    </button>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          )
+        ))}
+
+        {/* Verified Police Stations & Security Cordon */}
+        {policeStations.map((p, i) => (
+          p.lat && p.lng && (
+            <Marker
+              key={`police-${i}`}
+              position={[p.lat, p.lng]}
+              icon={createPulseIcon('police', '#3b82f6', p.name.split(' ')[0])}
+            >
+              <Popup>
+                <div style={{ color: '#0f172a', padding: '6px', minWidth: '220px' }}>
+                  <div style={{ fontWeight: '800', color: '#2563eb', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ShieldCheck size={14} /> {p.name}
+                  </div>
+                  <div style={{ marginTop: '4px', fontSize: '12px' }}><strong>Cadre:</strong> {p.type}</div>
+                  <div style={{ fontSize: '12px' }}><strong>Officers Mobilized:</strong> <span style={{ color: '#2563eb', fontWeight: '800' }}>{p.officers}</span> personnel</div>
+                  <div style={{ fontSize: '12px' }}><strong>Patrol Vehicles:</strong> {p.patrol_vehicles} interceptors</div>
+                  <div style={{ fontSize: '12px' }}><strong>Green Corridor Squads:</strong> <span style={{ color: '#16a34a', fontWeight: '700' }}>{p.green_corridor_squads} active squads</span></div>
+                  <div style={{ fontSize: '12px' }}><strong>Tactical Radio Net:</strong> {p.wireless}</div>
+                  <div style={{ fontSize: '12px' }}><strong>Distance:</strong> {p.distance_km} km away</div>
+                  {onOpenDispatch && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenDispatch('police_department')
+                      }}
+                      style={{
+                        marginTop: '8px',
+                        width: '100%',
+                        padding: '5px 8px',
+                        background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <Send size={11} /> DISPATCH LAW ENFORCEMENT DIRECTIVE
+                    </button>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          )
+        ))}
+
+        {/* Specialized USAR & Defense Rescue Bases */}
+        {rescueBases.map((r, i) => (
+          r.lat && r.lng && (
+            <Marker
+              key={`rescue-${i}`}
+              position={[r.lat, r.lng]}
+              icon={createPulseIcon('rescue', '#eab308', r.name.split(' ')[0])}
+            >
+              <Popup>
+                <div style={{ color: '#0f172a', padding: '6px', minWidth: '230px' }}>
+                  <div style={{ fontWeight: '800', color: '#ca8a04', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Crosshair size={14} /> {r.name}
+                  </div>
+                  <div style={{ marginTop: '4px', fontSize: '12px' }}><strong>Cadre:</strong> {r.type}</div>
+                  <div style={{ fontSize: '12px' }}><strong>USAR Responders:</strong> <span style={{ color: '#ca8a04', fontWeight: '800' }}>{r.personnel}</span> specialists</div>
+                  <div style={{ fontSize: '12px' }}><strong>Inflatable / Storm Craft:</strong> {r.inflatable_boats || 'Tactical Units'}</div>
+                  <div style={{ fontSize: '12px' }}><strong>Specialized Gear:</strong> {(r.equipment || []).join(', ')}</div>
+                  <div style={{ fontSize: '12px' }}><strong>Tactical Channel:</strong> {r.channel}</div>
+                  <div style={{ fontSize: '12px' }}><strong>Distance:</strong> {r.distance_km} km away</div>
+                  {onOpenDispatch && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenDispatch('rescue_ndrf')
+                      }}
+                      style={{
+                        marginTop: '8px',
+                        width: '100%',
+                        padding: '5px 8px',
+                        background: 'linear-gradient(135deg, #eab308, #a16207)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <Send size={11} /> DISPATCH USAR SPECIAL RESCUE DIRECTIVE
+                    </button>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          )
+        ))}
+
+        {/* Civil Defense & Emergency Operations Centers (EOC) */}
+        {investigationUnits.map((u, i) => (
+          u.lat && u.lng && (
+            <Marker
+              key={`inquest-${i}`}
+              position={[u.lat, u.lng]}
+              icon={createPulseIcon('investigation', '#a855f7', 'EOC')}
+            >
+              <Popup>
+                <div style={{ color: '#0f172a', padding: '6px', minWidth: '230px' }}>
+                  <div style={{ fontWeight: '800', color: '#9333ea', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ShieldCheck size={14} /> {u.name}
+                  </div>
+                  <div style={{ marginTop: '4px', fontSize: '12px' }}><strong>Cadre:</strong> {u.type}</div>
+                  <div style={{ fontSize: '12px' }}><strong>Operational Role:</strong> {u.role}</div>
+                  <div style={{ fontSize: '12px' }}><strong>Command Personnel:</strong> {u.officers} staff</div>
+                  <div style={{ fontSize: '12px' }}><strong>Distance:</strong> {u.distance_km} km away</div>
+                  {onOpenDispatch && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenDispatch('investigation_forensic')
+                      }}
+                      style={{
+                        marginTop: '8px',
+                        width: '100%',
+                        padding: '5px 8px',
+                        background: 'linear-gradient(135deg, #a855f7, #7e22ce)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <Send size={11} /> DISPATCH CIVIL DEFENSE & EOC DIRECTIVE
+                    </button>
+                  )}
                 </div>
               </Popup>
             </Marker>
@@ -531,16 +868,43 @@ export default function GoogleEarthMap({
             <Marker
               key={`shelt-${i}`}
               position={[s.lat, s.lng]}
-              icon={createPulseIcon('shelter', '#3b82f6', s.name.split(' ')[0])}
+              icon={createPulseIcon('shelter', '#06b6d4', s.name.split(' ')[0])}
             >
               <Popup>
-                <div style={{ color: '#0f172a', padding: '4px' }}>
-                  <div style={{ fontWeight: '800', color: '#2563eb', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ color: '#0f172a', padding: '6px', minWidth: '220px' }}>
+                  <div style={{ fontWeight: '800', color: '#0891b2', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Home size={14} /> {s.name}
                   </div>
-                  <div style={{ marginTop: '4px' }}><strong>Safe Capacity:</strong> <strong>{s.capacity.toLocaleString()}</strong> persons</div>
-                  <div><strong>Status:</strong> <span style={{ color: '#16a34a', fontWeight: '700' }}>{s.status}</span></div>
-                  <div><strong>Facilities:</strong> {(s.facilities || []).join(', ')}</div>
+                  <div style={{ marginTop: '4px', fontSize: '12px' }}><strong>Safe Capacity:</strong> <strong>{s.capacity.toLocaleString()}</strong> persons</div>
+                  <div style={{ fontSize: '12px' }}><strong>Status:</strong> <span style={{ color: '#16a34a', fontWeight: '700' }}>{s.status}</span></div>
+                  <div style={{ fontSize: '12px' }}><strong>Facilities:</strong> {(s.facilities || []).join(', ')}</div>
+                  <div style={{ fontSize: '12px' }}><strong>Distance:</strong> {s.distance_km || 4.2} km away</div>
+                  {onOpenDispatch && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenDispatch('district_administration')
+                      }}
+                      style={{
+                        marginTop: '8px',
+                        width: '100%',
+                        padding: '5px 8px',
+                        background: 'linear-gradient(135deg, #06b6d4, #0e7490)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <Send size={11} /> DISPATCH CIVIL EVACUATION DIRECTIVE
+                    </button>
+                  )}
                 </div>
               </Popup>
             </Marker>
@@ -565,12 +929,12 @@ export default function GoogleEarthMap({
               eventHandlers={{
                 click: () => {
                   if (onSelectHazard) {
-                    onSelectHazard(ev, false)
+                    onSelectHazard(ev, true)
                   }
                 },
                 popupopen: () => {
                   if (onSelectHazard) {
-                    onSelectHazard(ev, false)
+                    onSelectHazard(ev, true)
                   }
                 },
               }}

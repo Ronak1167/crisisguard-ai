@@ -22,6 +22,7 @@ async def run_intelligence_agent(
     description: str,
     event_callback=None,
     session_id: str = "",
+    coordinates: dict = None,
 ) -> dict:
     """
     Intelligence Agent: Ingests real GIS and weather telemetry and produces a structured assessment.
@@ -41,12 +42,14 @@ async def run_intelligence_agent(
 
     await emit("start", f"Initializing intelligence assessment for {disaster_type} in {location}...")
     
-    # 1. Fetch Real GIS Geocoding
-    await emit("tool_call", f"Querying Open-Meteo GIS Geocoding API for '{location}'...")
-    geo_info = await geocode_location(location)
+    # 1. Fetch Real GIS Geocoding with coordinate preservation
+    await emit("tool_call", f"Resolving global GIS telemetry for '{location}'...")
+    geo_info = await geocode_location(location, fallback_coords=coordinates)
     lat = geo_info.get("lat", 20.2961)
     lng = geo_info.get("lng", 85.8245)
-    await emit("thinking", f"Resolved coordinates: {lat:.4f}°N, {lng:.4f}°E ({geo_info.get('admin1', '')}, {geo_info.get('country', 'India')})")
+    country_name = geo_info.get("country", "Global")
+    admin1 = geo_info.get("admin1", "")
+    await emit("thinking", f"Resolved coordinates: {lat:.4f}°N, {lng:.4f}°E ({admin1}, {country_name})")
 
     # 2. Fetch Live Meteorological Telemetry
     await emit("tool_call", "Streaming real-time weather & atmospheric data from satellite NWP models...")

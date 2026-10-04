@@ -42,6 +42,7 @@ async def run_response_coordinator_agent(
     await emit("start", "Creating comprehensive response coordination plan...")
     
     severity_score = intelligence_data.get("disaster_classification", {}).get("severity_score", 7)
+    severity_label = intelligence_data.get("disaster_classification", {}).get("severity_label", "CRITICAL")
     pop_at_risk = intelligence_data.get("impact_assessment", {}).get("estimated_population_at_risk", 100000)
     resource_score = resource_data.get("resource_adequacy_score", 70)
     
@@ -108,47 +109,64 @@ Create the comprehensive response plan as JSON with EXACTLY this structure:
         json_str = response_text[json_start:json_end]
         result = json.loads(json_str)
     except Exception:
+        from services.real_data_service import detect_country_and_region
+        coords = intelligence_data.get("coordinates", {})
+        c_info = resource_data.get("region_profile") or detect_country_and_region(location, coords.get("lat", 20.2724), coords.get("lng", 85.8338))
+        rescue_lead = c_info.get("rescue_title", "Urban Search & Rescue Task Force")
+        fire_lead = c_info.get("fire_title", "Fire & Rescue Directorate")
+        police_lead = c_info.get("police_title", "Law Enforcement Division")
+        admin_lead = c_info.get("admin_title", "Emergency Operations Center")
+        
+        if "united_states" in c_info.get("detected_key", ""):
+            r1_lead, r2_lead, esc1, esc3 = f"{police_lead} + State Highway Patrol", f"{rescue_lead} + State National Guard", "State Governor Office & FEMA Regional Administrator", "FEMA National Response Coordination Center (NRCC)"
+        elif "japan" in c_info.get("detected_key", ""):
+            r1_lead, r2_lead, esc1, esc3 = f"{police_lead} & Disaster Traffic Unit", f"{rescue_lead} + Tokyo Hyper Rescue", "Prefectural Governor & Cabinet Disaster Management Office", "Cabinet Office Disaster Management HQ"
+        elif "europe" in c_info.get("detected_key", ""):
+            r1_lead, r2_lead, esc1, esc3 = f"{police_lead} & Guardia Civil / Police", f"{rescue_lead} + Military Emergencies Unit (UME)", "CECOPI Director & Civil Protection Delegation", "EU Civil Protection Mechanism (ERCC Brussels)"
+        else:
+            r1_lead, r2_lead, esc1, esc3 = "State Police & Disaster Force", f"{rescue_lead} Battalion", "State Disaster Management Authority & Chief Secretary", "National Disaster Management Authority (NDMA HQ)"
+
         result = {
             "operational_status": {
                 "incident_command_activated": True,
                 "alert_level": "RED" if severity_score >= 7 else "ORANGE",
                 "response_phase": "IMMEDIATE",
-                "command_center": f"{location} District Emergency Operations Centre"
+                "command_center": f"{location} Unified Emergency Operations Center ({c_info.get('country', 'Regional')})"
             },
             "priority_tasks": [
-                {"priority": 1, "task": "Activate evacuation of coastal zones within 5km of impact area", "responsible": "SDRF + Police", "deadline": "Next 2 hours", "status": "PENDING", "resources_needed": ["Transport vehicles", "Police escorts"]},
-                {"priority": 2, "task": "Deploy NDRF teams to highest-risk zones for search & rescue", "responsible": "NDRF 3rd Battalion", "deadline": "Next 3 hours", "status": "PENDING", "resources_needed": ["Speed boats", "Life jackets", "First aid kits"]},
-                {"priority": 3, "task": "Activate all designated emergency shelters and medical camps", "responsible": "District Administration", "deadline": "Next 4 hours", "status": "PENDING", "resources_needed": ["Supply depot inventory", "Medical teams"]},
-                {"priority": 4, "task": "Establish communication relay points in blackout zones", "responsible": "Telecom Emergency Cell", "deadline": "Next 6 hours", "status": "PENDING", "resources_needed": ["Satellite phones", "Mobile towers"]},
-                {"priority": 5, "task": "Pre-position medical supplies at forward operating bases", "responsible": "Health Department", "deadline": "Next 8 hours", "status": "PENDING", "resources_needed": ["Medical kits", "Oxygen cylinders", "Blood supplies"]},
+                {"priority": 1, "task": f"Activate mandatory evacuation of high-risk hazard zones in {location}", "responsible": r1_lead, "deadline": "Next 2 hours", "status": "PENDING", "resources_needed": ["Emergency transport fleet", "Traffic escort units"]},
+                {"priority": 2, "task": f"Deploy heavy search & rescue squads to priority entrapment perimeters", "responsible": r2_lead, "deadline": "Next 3 hours", "status": "PENDING", "resources_needed": ["Rescue apparatus", "Acoustic life detectors", "Medical kits"]},
+                {"priority": 3, "task": f"Open and provision designated emergency shelters with surge power and food", "responsible": admin_lead, "deadline": "Next 4 hours", "status": "PENDING", "resources_needed": ["Emergency rations", "Potable water tankers", "Surge generators"]},
+                {"priority": 4, "task": "Establish satellite communications and inter-cadre radio mesh relay", "responsible": "Emergency Telecommunications Task Force", "deadline": "Next 6 hours", "status": "PENDING", "resources_needed": ["Satellite terminals", "Mobile repeater pods"]},
+                {"priority": 5, "task": "Pre-position apex trauma surge teams and burn resuscitation units", "responsible": c_info.get("medical_title", "Emergency Medical Services"), "deadline": "Next 8 hours", "status": "PENDING", "resources_needed": ["Mobile ICU units", "Blood plasma reserve", "Trauma surgical packs"]},
             ],
             "evacuation_plan": {
                 "total_to_evacuate": int(pop_at_risk * 0.4),
                 "evacuation_waves": [
-                    {"wave": 1, "target": "Elderly, disabled, and children under 5 in coastal zones", "timeline": "Immediate - 0-2 hours", "method": "Priority transport and ambulances"},
-                    {"wave": 2, "target": "All coastal village residents within 10km", "timeline": "2-6 hours", "method": "Government buses and personal vehicles"},
-                    {"wave": 3, "target": "Inland rural population in flood plains", "timeline": "6-12 hours", "method": "Mixed transport with community volunteers"},
+                    {"wave": 1, "target": "Elderly, disabled, and non-ambulatory residents in immediate danger zone", "timeline": "Immediate - 0-2 hours", "method": "Priority medical transport and ambulances"},
+                    {"wave": 2, "target": "Residents in primary inundation / collapse perimeters", "timeline": "2-6 hours", "method": "Designated evacuation buses and guided convoys"},
+                    {"wave": 3, "target": "General population in secondary hazard buffer zones", "timeline": "6-12 hours", "method": "Green corridor arterial highway routing"},
                 ],
                 "estimated_completion": "12 hours"
             },
             "resource_allocation": [
-                {"resource": "NDRF Teams", "assigned_to": "Coastal search & rescue", "quantity": "45 personnel", "priority": "CRITICAL"},
-                {"resource": "Emergency Buses", "assigned_to": "Evacuation transport", "quantity": "120 vehicles", "priority": "CRITICAL"},
-                {"resource": "Medical Teams", "assigned_to": "Forward medical posts", "quantity": "8 teams", "priority": "HIGH"},
-                {"resource": "Food Packets", "assigned_to": "Shelter distribution", "quantity": "50,000 units", "priority": "HIGH"},
+                {"resource": f"{rescue_lead} Units", "assigned_to": "High-priority search & extraction", "quantity": "180 personnel", "priority": "CRITICAL"},
+                {"resource": "Emergency Convoys & Ambulances", "assigned_to": "Civic evacuation transport", "quantity": "95 vehicles", "priority": "CRITICAL"},
+                {"resource": "Disaster Medical Assistance Teams (DMAT)", "assigned_to": "Forward triage posts", "quantity": "12 teams", "priority": "HIGH"},
+                {"resource": "Relief Sustenance Kits", "assigned_to": "Shelter distribution network", "quantity": "40,000 units", "priority": "HIGH"},
             ],
             "human_escalation_triggers": [
-                {"trigger": "Casualty count exceeds 50 persons", "reason": "Requires political and additional military authorization", "escalate_to": "State Chief Secretary + CM Office"},
-                {"trigger": "Infrastructure damage blocks main evacuation route", "reason": "Real-time route change requires ground command", "escalate_to": "Incident Commander + PWD"},
-                {"trigger": "Resource adequacy drops below 30%", "reason": "Requires inter-state or central resource mobilization", "escalate_to": "NDMA National HQ"},
+                {"trigger": "Casualty count or major entrapment exceeds 50 persons", "reason": "Requires executive mobilization and military support authorization", "escalate_to": esc1},
+                {"trigger": "Critical arterial transport or bridge infrastructure severed", "reason": "Demands immediate aerial hoist airlift and tactical engineering bypass", "escalate_to": f"{admin_lead} Incident Commander"},
+                {"trigger": "Regional resource adequacy score falls below 35%", "reason": "Requires interstate or federal emergency compact activation", "escalate_to": esc3},
             ],
             "success_metrics": [
-                {"metric": "Evacuation completion rate", "target": "95% within 12 hours", "measurement": "Shelter headcount vs. registered population"},
-                {"metric": "Zero preventable deaths", "target": "All critical rescues within 6-hour window", "measurement": "NDRF incident logs"},
-                {"metric": "Medical coverage", "target": "1 doctor per 200 evacuees", "measurement": "Health department deployment records"},
+                {"metric": "Evacuation execution rate", "target": "95% within 12 hours", "measurement": "Verified shelter intake headcount"},
+                {"metric": "Zero preventable life loss", "target": "All high-priority extractions completed in 6h", "measurement": "CAD dispatch telemetry log"},
+                {"metric": "Surge trauma coverage", "target": "100% critical patients triaged within 30 min", "measurement": "Regional hospital admissions ledger"},
             ],
-            "overall_response_score": 78,
-            "commander_briefing": f"A {disaster_type} threatens {location} with {pop_at_risk:,} people at risk. Immediate evacuation of coastal zones is critical — Wave 1 must commence within 2 hours. NDRF teams are en route and shelters are activated. Priority is life safety; the response plan has {5} parallel tracks with clear ownership. Human escalation gates are set for casualties >50 and route blockage.",
+            "overall_response_score": 82,
+            "commander_briefing": f"A {severity_label} {disaster_type} threatens {location} with {pop_at_risk:,} people at risk. Incident Command is operational under {c_info.get('statutory_act', 'Statutory Civil Protection')}. Priority-1 evacuation has commenced with {rescue_lead} and {fire_lead} on scene. 5 synchronized ICS operational tracks are active. Human escalation checkpoints are established for casualty thresholds and structural failures.",
             "estimated_lives_at_risk": int(pop_at_risk * 0.05),
             "lives_potentially_saved_with_plan": int(pop_at_risk * 0.045),
         }
