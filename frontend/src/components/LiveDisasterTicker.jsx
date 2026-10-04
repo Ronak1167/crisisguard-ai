@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { Radio, Activity, Flame, Wind, Zap, ChevronLeft, ChevronRight } from 'lucide-react'
 
 /**
  * LiveDisasterTicker - Real-time NASA EONET & USGS Earthquakes marquee
- * Allows immediate loading of genuine real-world active disasters.
- * Supports:
- * - Direct mouse wheel horizontal scrolling
- * - Click-and-drag panning
- * - Left/Right chevron navigation buttons
- * - Sleek cyberpunk glowing scrollbar indicator
+ * Professional UI/UX Pro Max implementation:
+ * - Lucide SVG vector icons (no emojis)
+ * - Mouse wheel horizontal panning
+ * - Click-and-drag smooth panning
+ * - Compact 20px circular chevron controls
+ * - Fira Code telemetry labels
  */
 export default function LiveDisasterTicker({ onSelectEvent }) {
   const [events, setEvents] = useState([])
@@ -86,17 +87,18 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
   if (loading && events.length === 0) {
     return (
       <div style={{
-        background: 'rgba(5, 12, 24, 0.95)',
-        borderBottom: '1px solid rgba(0, 240, 255, 0.2)',
-        padding: '8px 16px',
+        background: 'rgba(6, 9, 19, 0.95)',
+        borderBottom: '1px solid rgba(148, 163, 184, 0.12)',
+        padding: '7px 16px',
         fontSize: '11px',
         color: '#64748b',
         display: 'flex',
         alignItems: 'center',
-        gap: '8px'
+        gap: '8px',
+        fontFamily: 'var(--font-mono)',
       }}>
         <span className="spinner" style={{ width: '12px', height: '12px' }} />
-        <span>Syncing live global satellite telemetry from NASA EONET & USGS...</span>
+        <span>SYNCING LIVE SATELLITE TELEMETRY (NASA EONET & USGS)...</span>
       </div>
     )
   }
@@ -105,9 +107,9 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
 
   return (
     <div style={{
-      background: 'rgba(4, 9, 20, 0.95)',
-      backdropFilter: 'blur(12px)',
-      borderBottom: '1px solid rgba(0, 240, 255, 0.25)',
+      background: 'rgba(6, 9, 19, 0.98)',
+      backdropFilter: 'blur(16px)',
+      borderBottom: '1px solid rgba(148, 163, 184, 0.12)',
       padding: '6px 14px',
       display: 'flex',
       alignItems: 'center',
@@ -120,34 +122,30 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '6px',
+        gap: '8px',
         fontSize: '11px',
-        fontWeight: '800',
+        fontWeight: '700',
         letterSpacing: '0.06em',
-        color: '#ff2a55',
+        color: '#f8fafc',
         flex: '0 0 auto',
         textTransform: 'uppercase',
-        paddingRight: '8px',
-        borderRight: '1px solid rgba(255, 255, 255, 0.15)',
+        paddingRight: '10px',
+        borderRight: '1px solid rgba(148, 163, 184, 0.15)',
         userSelect: 'none',
       }}>
+        <Radio size={13} color="#ef4444" className="live-indicator" style={{ animation: 'pulse-red 1.5s infinite' }} />
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: '700' }}>
+          GLOBAL HAZARDS:
+        </span>
         <span style={{
-          width: '8px',
-          height: '8px',
-          borderRadius: '50%',
-          background: '#ff2a55',
-          boxShadow: '0 0 8px #ff2a55',
-          display: 'inline-block',
-          animation: 'pulse 1.2s infinite'
-        }} />
-        <span>REAL-TIME GLOBAL HAZARDS:</span>
-        <span style={{
-          background: 'rgba(239, 68, 68, 0.25)',
+          background: 'rgba(239, 68, 68, 0.15)',
           color: '#fca5a5',
-          fontSize: '9px',
+          fontSize: '10px',
+          fontFamily: 'var(--font-mono)',
           padding: '2px 6px',
           borderRadius: '4px',
-          border: '1px solid rgba(239, 68, 68, 0.4)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          fontWeight: '600',
         }}>
           {events.length} ACTIVE
         </span>
@@ -156,7 +154,7 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
       {/* Left Scroll Chevron */}
       <motion.button
         type="button"
-        whileHover={{ scale: 1.15, backgroundColor: 'rgba(0, 240, 255, 0.25)', borderColor: '#00f0ff' }}
+        whileHover={{ scale: 1.15, backgroundColor: 'rgba(6, 182, 212, 0.2)', borderColor: '#06b6d4' }}
         whileTap={{ scale: 0.9 }}
         onClick={() => scrollByAmount(-320)}
         style={{
@@ -167,19 +165,17 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: '50%',
-          background: 'rgba(15, 23, 42, 0.7)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          color: '#00f0ff',
+          background: 'rgba(15, 23, 42, 0.8)',
+          border: '1px solid rgba(148, 163, 184, 0.2)',
+          color: '#06b6d4',
           cursor: 'pointer',
           padding: 0,
-          boxShadow: '0 0 6px rgba(0, 240, 255, 0.15)',
+          boxShadow: '0 0 6px rgba(6, 182, 212, 0.15)',
           transition: 'all 0.2s',
         }}
         title="Scroll Left"
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
+        <ChevronLeft size={12} strokeWidth={2.5} />
       </motion.button>
 
       {/* Horizontal Scrollable Track */}
@@ -192,7 +188,7 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
         className="hazard-ticker-scroll"
         style={{
           display: 'flex',
-          gap: '10px',
+          gap: '8px',
           alignItems: 'center',
           overflowX: 'auto',
           whiteSpace: 'nowrap',
@@ -207,42 +203,49 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
         {events.map((ev, i) => (
           <motion.div
             key={ev.id || i}
-            whileHover={{ scale: 1.03, borderColor: '#00f0ff' }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.02, borderColor: '#06b6d4' }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => {
               if (hasMovedRef.current) return
               onSelectEvent(ev)
             }}
             style={{
-              background: 'rgba(15, 23, 42, 0.85)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              background: 'rgba(15, 23, 42, 0.9)',
+              border: '1px solid rgba(148, 163, 184, 0.15)',
               borderRadius: '6px',
               padding: '4px 10px',
               fontSize: '11px',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '7px',
               flex: '0 0 auto',
               transition: 'border-color 0.2s, background 0.2s',
             }}
           >
-            <span style={{ fontSize: '13px' }}>
-              {ev.category === 'Earthquake' ? '🏚️' : ev.category === 'Wildfires' ? '🔥' : '🌀'}
+            <span style={{ display: 'flex', alignItems: 'center' }}>
+              {ev.category === 'Earthquake' ? (
+                <Activity size={13} color="#f59e0b" />
+              ) : ev.category === 'Wildfires' ? (
+                <Flame size={13} color="#ef4444" />
+              ) : (
+                <Wind size={13} color="#06b6d4" />
+              )}
             </span>
-            <span style={{ color: '#f1f5f9', fontWeight: '600' }}>{ev.title}</span>
+            <span style={{ color: '#f8fafc', fontWeight: '600' }}>{ev.title}</span>
             <span style={{
-              background: ev.severity === 'CRITICAL' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(245, 158, 11, 0.25)',
+              background: ev.severity === 'CRITICAL' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
               color: ev.severity === 'CRITICAL' ? '#fca5a5' : '#fcd34d',
-              padding: '1px 6px',
-              borderRadius: '4px',
+              padding: '1px 5px',
+              borderRadius: '3px',
               fontSize: '9px',
+              fontFamily: 'var(--font-mono)',
               fontWeight: '700',
             }}>
               {ev.source.split(' ')[0]}
             </span>
-            <span style={{ fontSize: '10px', color: '#00f0ff', opacity: 0.85, fontWeight: '700' }}>
-              ⚡ ACTIVATE
+            <span style={{ fontSize: '10px', color: '#06b6d4', opacity: 0.9, fontWeight: '700', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <Zap size={10} /> ACTIVATE
             </span>
           </motion.div>
         ))}
@@ -251,7 +254,7 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
       {/* Right Scroll Chevron */}
       <motion.button
         type="button"
-        whileHover={{ scale: 1.15, backgroundColor: 'rgba(0, 240, 255, 0.25)', borderColor: '#00f0ff' }}
+        whileHover={{ scale: 1.15, backgroundColor: 'rgba(6, 182, 212, 0.2)', borderColor: '#06b6d4' }}
         whileTap={{ scale: 0.9 }}
         onClick={() => scrollByAmount(320)}
         style={{
@@ -262,19 +265,17 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: '50%',
-          background: 'rgba(15, 23, 42, 0.7)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          color: '#00f0ff',
+          background: 'rgba(15, 23, 42, 0.8)',
+          border: '1px solid rgba(148, 163, 184, 0.2)',
+          color: '#06b6d4',
           cursor: 'pointer',
           padding: 0,
-          boxShadow: '0 0 6px rgba(0, 240, 255, 0.15)',
+          boxShadow: '0 0 6px rgba(6, 182, 212, 0.15)',
           transition: 'all 0.2s',
         }}
         title="Scroll Right"
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        <ChevronRight size={12} strokeWidth={2.5} />
       </motion.button>
     </div>
   )

@@ -2,6 +2,20 @@ import { useEffect, useRef, useState, useMemo } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import {
+  Satellite,
+  Layers,
+  Maximize2,
+  Minimize2,
+  Plus,
+  Minus,
+  Crosshair,
+  Building2,
+  Compass,
+  Globe,
+  AlertTriangle,
+  Home,
+} from 'lucide-react'
 
 // Fix default leaflet marker icon paths in Vite
 delete L.Icon.Default.prototype._getIconUrl
@@ -11,8 +25,16 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
-// Custom High-Tech Markers
-const createPulseIcon = (emoji, color, label) => {
+const SVG_ICONS = {
+  epicenter: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  hospital: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`,
+  shelter: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  event: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+}
+
+// Custom High-Tech Markers without emojis
+const createPulseIcon = (iconType, color, label) => {
+  const svg = SVG_ICONS[iconType] || SVG_ICONS.event
   return L.divIcon({
     className: 'custom-earth-marker',
     html: `<div style="
@@ -23,31 +45,32 @@ const createPulseIcon = (emoji, color, label) => {
     ">
       <div style="
         background: ${color};
-        width: 34px;
-        height: 34px;
+        width: 30px;
+        height: 30px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 16px;
-        box-shadow: 0 0 16px ${color}, 0 0 30px ${color}88;
+        box-shadow: 0 0 12px ${color}, 0 0 22px ${color}88;
         border: 2px solid #ffffff;
-      ">${emoji}</div>
+      ">${svg}</div>
       <div style="
-        background: rgba(3, 7, 18, 0.85);
-        color: #f1f5f9;
+        background: rgba(11, 17, 32, 0.94);
+        color: #f8fafc;
+        font-family: var(--font-mono, monospace);
         font-size: 9px;
-        font-weight: 700;
+        font-weight: 600;
+        letter-spacing: 0.04em;
         padding: 2px 6px;
         border-radius: 4px;
         margin-top: 3px;
         white-space: nowrap;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.6);
       ">${label}</div>
     </div>`,
-    iconSize: [40, 56],
-    iconAnchor: [20, 28],
+    iconSize: [36, 52],
+    iconAnchor: [18, 26],
   })
 }
 
@@ -172,7 +195,7 @@ export default function GoogleEarthMap({
     setIsFullscreen(!isFullscreen)
   }
 
-  const epicenterIcon = useMemo(() => createPulseIcon('⚠️', '#ef4444', 'EPICENTER'), [])
+  const epicenterIcon = useMemo(() => createPulseIcon('epicenter', '#ef4444', 'EPICENTER'), [])
 
   // World bounds to strictly prevent panning into the infinite void
   const worldBounds = useMemo(() => [
@@ -314,7 +337,9 @@ export default function GoogleEarthMap({
         <Marker position={[lat, lng]} icon={epicenterIcon}>
           <Popup>
             <div style={{ color: '#0f172a', padding: '4px' }}>
-              <div style={{ fontWeight: '800', color: '#ef4444', fontSize: '13px' }}>🚨 DISASTER EPICENTER</div>
+              <div style={{ fontWeight: '800', color: '#ef4444', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <AlertTriangle size={14} /> INCIDENT EPICENTER
+              </div>
               <div style={{ marginTop: '4px' }}><strong>Type:</strong> {disasterType.toUpperCase()}</div>
               <div><strong>GPS:</strong> {lat.toFixed(4)}°N, {lng.toFixed(4)}°E</div>
               <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Impact zone active. Coordinated emergency response deployed.</div>
@@ -354,14 +379,16 @@ export default function GoogleEarthMap({
             <Marker
               key={`hosp-${i}`}
               position={[h.lat, h.lng]}
-              icon={createPulseIcon('🏥', '#10b981', h.name.split(' ')[0])}
+              icon={createPulseIcon('hospital', '#10b981', h.name.split(' ')[0])}
             >
               <Popup>
                 <div style={{ color: '#0f172a', padding: '4px' }}>
-                  <div style={{ fontWeight: '800', color: '#10b981', fontSize: '13px' }}>🏥 {h.name}</div>
+                  <div style={{ fontWeight: '800', color: '#10b981', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Building2 size={14} /> {h.name}
+                  </div>
                   <div style={{ marginTop: '4px' }}><strong>Status:</strong> <span style={{ color: '#059669', fontWeight: '700' }}>{h.status}</span></div>
                   <div><strong>Surge Beds Available:</strong> <span style={{ color: '#0284c7', fontWeight: '800', fontSize: '13px' }}>{h.beds_available}</span> / {h.total_beds || 'N/A'}</div>
-                  <div><strong>Trauma Certified:</strong> {h.trauma_center ? '✅ Yes (Apex Center)' : 'Standard'}</div>
+                  <div><strong>Trauma Certified:</strong> {h.trauma_center ? 'Yes (Apex Trauma Center)' : 'Standard'}</div>
                   <div><strong>Distance from Epicenter:</strong> {h.distance_km} km</div>
                 </div>
               </Popup>
@@ -375,11 +402,13 @@ export default function GoogleEarthMap({
             <Marker
               key={`shelt-${i}`}
               position={[s.lat, s.lng]}
-              icon={createPulseIcon('🏠', '#3b82f6', s.name.split(' ')[0])}
+              icon={createPulseIcon('shelter', '#3b82f6', s.name.split(' ')[0])}
             >
               <Popup>
                 <div style={{ color: '#0f172a', padding: '4px' }}>
-                  <div style={{ fontWeight: '800', color: '#2563eb', fontSize: '13px' }}>🏠 {s.name}</div>
+                  <div style={{ fontWeight: '800', color: '#2563eb', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Home size={14} /> {s.name}
+                  </div>
                   <div style={{ marginTop: '4px' }}><strong>Safe Capacity:</strong> <strong>{s.capacity.toLocaleString()}</strong> persons</div>
                   <div><strong>Status:</strong> <span style={{ color: '#16a34a', fontWeight: '700' }}>{s.status}</span></div>
                   <div><strong>Facilities:</strong> {(s.facilities || []).join(', ')}</div>
@@ -411,13 +440,16 @@ export default function GoogleEarthMap({
           style={{
             padding: '5px 10px',
             fontSize: '11px',
-            fontWeight: '700',
+            fontWeight: '600',
             color: mapLayer === 'hybrid' ? '#00f0ff' : '#94a3b8',
-            background: mapLayer === 'hybrid' ? 'rgba(0,240,255,0.2)' : 'transparent',
+            background: mapLayer === 'hybrid' ? 'rgba(0,240,255,0.15)' : 'transparent',
             borderColor: mapLayer === 'hybrid' ? '#00f0ff' : 'transparent',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
           }}
         >
-          🛰️ SATELLITE (EARTH)
+          <Satellite size={12} /> SATELLITE
         </button>
         <button
           onClick={() => setMapLayer('tactical')}
@@ -425,38 +457,48 @@ export default function GoogleEarthMap({
           style={{
             padding: '5px 10px',
             fontSize: '11px',
-            fontWeight: '700',
+            fontWeight: '600',
             color: mapLayer === 'tactical' ? '#00f0ff' : '#94a3b8',
-            background: mapLayer === 'tactical' ? 'rgba(0,240,255,0.2)' : 'transparent',
+            background: mapLayer === 'tactical' ? 'rgba(0,240,255,0.15)' : 'transparent',
             borderColor: mapLayer === 'tactical' ? '#00f0ff' : 'transparent',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
           }}
         >
-          🕶️ TACTICAL DARK
+          <Layers size={12} /> TACTICAL DARK
         </button>
         <button
           onClick={toggleFullscreen}
           className="severity-btn"
-          style={{ padding: '5px 8px', fontSize: '11px', color: '#f1f5f9' }}
+          style={{
+            padding: '5px 8px',
+            fontSize: '11px',
+            color: '#f1f5f9',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
           title="Toggle Expanded View"
         >
-          {isFullscreen ? '🗗 COLLAPSE' : '⛶ EXPAND'}
+          {isFullscreen ? <><Minimize2 size={12} /> COLLAPSE</> : <><Maximize2 size={12} /> EXPAND</>}
         </button>
         <div style={{ width: '1px', background: 'rgba(255,255,255,0.2)', margin: '2px 2px' }} />
         <button
           onClick={handleZoomIn}
           className="severity-btn"
-          style={{ padding: '5px 9px', fontSize: '12px', fontWeight: '800', color: '#00f0ff' }}
+          style={{ padding: '5px 8px', fontSize: '11px', fontWeight: '800', color: '#00f0ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           title="Zoom In (Manual +)"
         >
-          ➕
+          <Plus size={13} />
         </button>
         <button
           onClick={handleZoomOut}
           className="severity-btn"
-          style={{ padding: '5px 9px', fontSize: '12px', fontWeight: '800', color: '#00f0ff' }}
+          style={{ padding: '5px 8px', fontSize: '11px', fontWeight: '800', color: '#00f0ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           title="Zoom Out (Manual −)"
         >
-          ➖
+          <Minus size={13} />
         </button>
       </div>
 
@@ -510,30 +552,30 @@ export default function GoogleEarthMap({
         <button
           onClick={flyToEpicenter}
           className="severity-btn"
-          style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '700', color: '#ef4444', borderColor: 'rgba(239,68,68,0.4)' }}
+          style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '600', color: '#ef4444', borderColor: 'rgba(239,68,68,0.4)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
-          🎯 FOCUS EPICENTER
+          <Crosshair size={11} /> FOCUS EPICENTER
         </button>
         <button
           onClick={flyToStreetLevel}
           className="severity-btn"
-          style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '700', color: '#00f0ff', borderColor: 'rgba(0,240,255,0.4)' }}
+          style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '600', color: '#00f0ff', borderColor: 'rgba(0,240,255,0.4)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
-          🏙️ STREET LEVEL (ZOOM 16)
+          <Building2 size={11} /> STREET LEVEL
         </button>
         <button
           onClick={flyToAllAssets}
           className="severity-btn"
-          style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '700', color: '#10b981', borderColor: 'rgba(16,185,129,0.4)' }}
+          style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '600', color: '#10b981', borderColor: 'rgba(16,185,129,0.4)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
-          🌐 FIT ALL ASSETS ({hospitals.length + shelters.length})
+          <Compass size={11} /> FIT ALL ASSETS ({hospitals.length + shelters.length})
         </button>
         <button
           onClick={flyToGlobalOrbit}
           className="severity-btn"
-          style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '700', color: '#38bdf8', borderColor: 'rgba(56,189,248,0.4)' }}
+          style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '600', color: '#38bdf8', borderColor: 'rgba(56,189,248,0.4)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
-          🌍 GLOBAL ORBIT
+          <Globe size={11} /> GLOBAL ORBIT
         </button>
       </div>
 

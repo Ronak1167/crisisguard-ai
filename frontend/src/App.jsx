@@ -1,5 +1,35 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+  ShieldAlert,
+  Wind,
+  Waves,
+  Activity,
+  Mountain,
+  Sun,
+  Flame,
+  Sliders,
+  MapPin,
+  FileText,
+  Satellite,
+  Compass,
+  Radio,
+  ShieldCheck,
+  UserCheck,
+  Zap,
+  Cpu,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Phone,
+  Smartphone,
+  Building2,
+  Home,
+  Check,
+  ChevronRight,
+  Terminal,
+  Loader2,
+} from 'lucide-react'
 import './index.css'
 
 import GoogleEarthMap from './components/GoogleEarthMap'
@@ -9,18 +39,18 @@ import LiveDisasterTicker from './components/LiveDisasterTicker'
 const API_BASE = 'http://localhost:8000'
 
 const DISASTER_TYPES = [
-  { id: 'cyclone', label: 'Cyclone', icon: '🌀' },
-  { id: 'flood', label: 'Flood', icon: '🌊' },
-  { id: 'earthquake', label: 'Earthquake', icon: '🏚️' },
-  { id: 'landslide', label: 'Landslide', icon: '⛰️' },
-  { id: 'drought', label: 'Drought', icon: '☀️' },
-  { id: 'heatwave', label: 'Heat Wave', icon: '🔥' },
+  { id: 'cyclone', label: 'Cyclone', icon: Wind },
+  { id: 'flood', label: 'Flood', icon: Waves },
+  { id: 'earthquake', label: 'Earthquake', icon: Activity },
+  { id: 'landslide', label: 'Landslide', icon: Mountain },
+  { id: 'drought', label: 'Drought', icon: Sun },
+  { id: 'heatwave', label: 'Heat Wave', icon: Flame },
 ]
 
 const SAMPLE_SCENARIOS = [
-  { emoji: '🌀', title: 'Cyclone Amphan - Odisha', type: 'cyclone', location: 'Bhubaneswar, Odisha', severity: 'CRITICAL', desc: 'Category 4 cyclone approaching coastal Odisha. Winds at 180 km/h. Severe storm surge expected.' },
-  { emoji: '🌊', title: 'Flash Flood - Kerala', type: 'flood', location: 'Wayanad, Kerala', severity: 'HIGH', desc: 'Heavy monsoon rainfall causing flash flooding in Wayanad district. Multiple villages submerged.' },
-  { emoji: '🏚️', title: 'Earthquake - Delhi NCR', type: 'earthquake', location: 'New Delhi, Delhi', severity: 'HIGH', desc: 'Magnitude 6.2 earthquake strikes Delhi NCR. Multiple aftershocks reported. Structural collapse risks.' },
+  { icon: Wind, title: 'Cyclone Amphan - Odisha', type: 'cyclone', location: 'Bhubaneswar, Odisha', severity: 'CRITICAL', desc: 'Category 4 cyclone approaching coastal Odisha. Winds at 180 km/h. Severe storm surge expected.' },
+  { icon: Waves, title: 'Flash Flood - Kerala', type: 'flood', location: 'Wayanad, Kerala', severity: 'HIGH', desc: 'Heavy monsoon rainfall causing flash flooding in Wayanad district. Multiple villages submerged.' },
+  { icon: Activity, title: 'Earthquake - Delhi NCR', type: 'earthquake', location: 'New Delhi, Delhi', severity: 'HIGH', desc: 'Magnitude 6.2 earthquake strikes Delhi NCR. Multiple aftershocks reported. Structural collapse risks.' },
 ]
 
 // Optional subtle audio ping using Web Audio API for agent events
@@ -46,29 +76,40 @@ function AgentTracePanel({ events }) {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
   }, [events])
 
+  const getAgentIcon = (agentName) => {
+    if (!agentName) return <Terminal size={13} color="#38bdf8" />
+    if (agentName.includes('Intelligence')) return <Compass size={13} color="#38bdf8" />
+    if (agentName.includes('Resource')) return <Building2 size={13} color="#10b981" />
+    if (agentName.includes('Communication')) return <Radio size={13} color="#f59e0b" />
+    if (agentName.includes('Response')) return <ShieldCheck size={13} color="#a855f7" />
+    return <Cpu size={13} color="#94a3b8" />
+  }
+
   return (
     <div className="agent-trace-panel" ref={scrollRef}>
-      <div className="section-header">
-        <span className="icon">⚡</span>
-        LIVE AGENT REAL-TIME TRACE
-        {events.length > 0 && <span className="badge badge-green" style={{ marginLeft: 'auto' }}>{events.length} events</span>}
+      <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Terminal size={14} className="icon" />
+        LIVE MULTI-AGENT TELEMETRY STREAM
+        {events.length > 0 && <span className="badge badge-green" style={{ marginLeft: 'auto' }}>{events.length} EVENTS</span>}
       </div>
       {events.length === 0 ? (
         <div className="trace-empty">
-          <span style={{ fontSize: '32px' }}>🤖</span>
-          <span>Awaiting disaster activation or live hazard selection...</span>
-          <span style={{ fontSize: '11px', color: '#64748b' }}>Multi-agent autonomous trace will stream here over WebSockets</span>
+          <Cpu size={32} style={{ color: '#38bdf8', opacity: 0.6 }} />
+          <span>Awaiting incident execution or live hazard selection...</span>
+          <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)' }}>Multi-agent autonomous trace will stream here over WebSocket protocol</span>
         </div>
       ) : (
         events.map((event, i) => (
           <motion.div
             key={i}
             className={`trace-event event-${event.event_type}`}
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.2 }}
           >
-            <span className="trace-agent-icon">{event.agent_icon || '🤖'}</span>
+            <span className="trace-agent-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {getAgentIcon(event.agent)}
+            </span>
             <span className="trace-agent-name">{event.agent}</span>
             <span className="trace-message">{event.message}</span>
             <span className="trace-time">{new Date(event.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
@@ -90,7 +131,9 @@ function IntelligenceCard({ data }) {
     <TiltCard>
       <div className={`result-card ${severityClass}`} style={{ height: '100%' }}>
         <div className="result-card-header">
-          <div className="result-card-icon" style={{ background: 'rgba(239,68,68,0.15)' }}>🔍</div>
+          <div className="result-card-icon" style={{ background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Compass size={18} color="#ef4444" />
+          </div>
           <div>
             <div className="result-card-title">Intelligence Assessment</div>
             <div className="result-card-subtitle">Real GIS & Threat Telemetry</div>
@@ -99,9 +142,9 @@ function IntelligenceCard({ data }) {
         </div>
 
         {coords.lat && (
-          <div style={{ background: 'rgba(0, 240, 255, 0.08)', border: '1px solid rgba(0, 240, 255, 0.25)', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', color: '#00f0ff', marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>📍 Epicenter GPS:</span>
-            <span style={{ fontWeight: '700', fontFamily: 'monospace' }}>{coords.lat.toFixed(4)}°N, {coords.lng.toFixed(4)}°E</span>
+          <div style={{ background: 'rgba(0, 240, 255, 0.06)', border: '1px solid rgba(0, 240, 255, 0.2)', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', color: '#00f0ff', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><MapPin size={12} /> Epicenter GPS:</span>
+            <span style={{ fontWeight: '700', fontFamily: 'var(--font-mono)' }}>{coords.lat.toFixed(4)}°N, {coords.lng.toFixed(4)}°E</span>
           </div>
         )}
 
@@ -135,7 +178,9 @@ function IntelligenceCard({ data }) {
         </div>
         <div style={{ marginTop: '10px' }}>
           {(data.key_risks || []).slice(0, 3).map((r, i) => (
-            <span key={i} className="badge badge-red" style={{ margin: '2px' }}>⚠️ {r}</span>
+            <span key={i} className="badge badge-red" style={{ margin: '2px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <AlertTriangle size={11} /> {r}
+            </span>
           ))}
         </div>
       </div>
@@ -151,13 +196,15 @@ function ResourceCard({ data }) {
     <TiltCard>
       <div className="result-card" style={{ height: '100%' }}>
         <div className="result-card-header">
-          <div className="result-card-icon" style={{ background: 'rgba(59,130,246,0.15)' }}>🗺️</div>
+          <div className="result-card-icon" style={{ background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Building2 size={18} color="#3b82f6" />
+          </div>
           <div>
             <div className="result-card-title">Verified Emergency Assets</div>
             <div className="result-card-subtitle">Real GIS Hospital & Rescue Registry</div>
           </div>
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-            <div style={{ fontSize: '20px', fontWeight: '800', color: data?.resource_adequacy_score >= 70 ? 'var(--accent-green)' : 'var(--accent-orange)' }}>
+            <div style={{ fontSize: '20px', fontWeight: '800', fontFamily: 'var(--font-mono)', color: data?.resource_adequacy_score >= 70 ? 'var(--accent-green)' : 'var(--accent-orange)' }}>
               {data?.resource_adequacy_score}%
             </div>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Adequacy</div>
@@ -170,7 +217,7 @@ function ResourceCard({ data }) {
         <div className="metric-row"><span className="metric-label">NDRF / SDRF Units</span><span className="metric-value">{(data?.rescue_teams || []).length} battalions</span></div>
 
         <div style={{ marginTop: '12px' }}>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: '700' }}>VERIFIED LOCAL HOSPITALS:</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: '700', letterSpacing: '0.04em' }}>VERIFIED LOCAL HOSPITALS:</div>
           {hospitals.slice(0, 3).map((h, i) => (
             <div key={i} className="task-item" style={{ marginBottom: '4px', padding: '8px' }}>
               <span className="badge badge-blue">{h.trauma_center ? 'Trauma' : 'General'}</span>
@@ -185,7 +232,9 @@ function ResourceCard({ data }) {
 
         {(data?.critical_gaps || []).length > 0 && (
           <div style={{ marginTop: '10px', padding: '8px', background: 'rgba(239,68,68,0.08)', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--accent-red)', marginBottom: '4px' }}>⚠️ CRITICAL DEFICITS IDENTIFIED</div>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--accent-red)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <AlertTriangle size={12} /> CRITICAL DEFICITS IDENTIFIED
+            </div>
             {data.critical_gaps.map((g, i) => <div key={i} style={{ fontSize: '12px', color: 'var(--text-muted)' }}>• {g}</div>)}
           </div>
         )}
@@ -202,18 +251,20 @@ function AlertCard({ data }) {
     <TiltCard>
       <div className="result-card" style={{ height: '100%' }}>
         <div className="result-card-header">
-          <div className="result-card-icon" style={{ background: 'rgba(234,179,8,0.15)' }}>📢</div>
+          <div className="result-card-icon" style={{ background: 'rgba(234,179,8,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Radio size={18} color="#eab308" />
+          </div>
           <div>
             <div className="result-card-title">Emergency Communications</div>
-            <div className="result-card-subtitle">Multilingual Broadcasts</div>
+            <div className="result-card-subtitle">Multilingual Broadcast Engine</div>
           </div>
           <span className="badge badge-red" style={{ marginLeft: 'auto' }}>{data?.official_communication?.priority || 'URGENT'}</span>
         </div>
 
         <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
           {['english', 'hindi', 'regional'].map(l => (
-            <button key={l} onClick={() => setLang(l)} className="severity-btn" data-level={l === lang ? 'CRITICAL' : ''} style={{ flex: 1, padding: '6px 4px', textTransform: 'capitalize', fontSize: '11px' }}>
-              {l === 'english' ? '🇬🇧 EN' : l === 'hindi' ? '🇮🇳 HI' : '📍 REGIONAL'}
+            <button key={l} onClick={() => setLang(l)} className="severity-btn" data-level={l === lang ? 'CRITICAL' : ''} style={{ flex: 1, padding: '6px 4px', fontSize: '11px', fontWeight: '600' }}>
+              {l === 'english' ? 'EN (INTERNATIONAL)' : l === 'hindi' ? 'HI (DEVNAGARI)' : 'REGIONAL (VERNACULAR)'}
             </button>
           ))}
         </div>
@@ -221,14 +272,18 @@ function AlertCard({ data }) {
         <div className={`alert-box ${lang}`}>{publicAlert[lang] || 'Emergency broadcast active.'}</div>
 
         <div style={{ marginTop: '10px' }}>
-          <div className="alert-label">📱 160-Char Emergency SMS Broadcast</div>
-          <div className="alert-box" style={{ fontFamily: 'monospace', fontSize: '12px', letterSpacing: '0.02em', background: 'rgba(0,0,0,0.5)' }}>
+          <div className="alert-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Smartphone size={13} /> 160-Char Emergency SMS Broadcast
+          </div>
+          <div className="alert-box" style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', letterSpacing: '0.02em', background: 'rgba(0,0,0,0.5)' }}>
             {data?.sms_alert?.english || 'ALERT: Evacuate immediately to designated shelter.'}
           </div>
         </div>
 
         <div style={{ marginTop: '10px' }}>
-          <div className="alert-label">📞 Emergency Helplines</div>
+          <div className="alert-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Phone size={13} /> Emergency Helplines
+          </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {Object.entries(data?.media_advisory?.key_numbers || {}).map(([k, v]) => (
               <span key={k} className="badge badge-blue">{k.toUpperCase()}: {v}</span>
@@ -245,42 +300,48 @@ function ResponsePlanCard({ data }) {
     <TiltCard style={{ gridColumn: 'span 2' }}>
       <div className="result-card" style={{ height: '100%' }}>
         <div className="result-card-header">
-          <div className="result-card-icon" style={{ background: 'rgba(168,85,247,0.15)' }}>🎯</div>
+          <div className="result-card-icon" style={{ background: 'rgba(168,85,247,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ShieldCheck size={18} color="#a855f7" />
+          </div>
           <div>
             <div className="result-card-title">Response Operations Playbook</div>
             <div className="result-card-subtitle">Prioritized Multi-Track Incident Command System</div>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <span className={`badge badge-${data?.operational_status?.alert_level === 'RED' ? 'red' : 'orange'}`}>
-              🔴 {data?.operational_status?.alert_level || 'RED ALERT'}
+            <span className={`badge badge-${data?.operational_status?.alert_level === 'RED' ? 'red' : 'orange'}`} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span className="live-indicator" style={{ background: '#ef4444' }} /> {data?.operational_status?.alert_level || 'RED ALERT'}
             </span>
             <span className="badge badge-green">{data?.overall_response_score || 78}% Effectiveness</span>
           </div>
         </div>
 
         {/* Commander briefing */}
-        <div style={{ background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.3)', borderRadius: '10px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-          <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--accent-purple)', display: 'block', marginBottom: '6px' }}>🎖️ INCIDENT COMMANDER DIRECTIVE</span>
+        <div style={{ background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.25)', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+          <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--accent-purple)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', letterSpacing: '0.04em' }}>
+            <ShieldAlert size={13} /> INCIDENT COMMANDER DIRECTIVE
+          </span>
           {data?.commander_briefing}
         </div>
 
         {/* Lives impact */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '16px' }}>
-          <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
-            <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--accent-red)' }}>{(data?.estimated_lives_at_risk || 0).toLocaleString()}</div>
+          <div style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+            <div style={{ fontSize: '24px', fontWeight: '800', fontFamily: 'var(--font-mono)', color: 'var(--accent-red)' }}>{(data?.estimated_lives_at_risk || 0).toLocaleString()}</div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Lives at Risk</div>
           </div>
-          <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '10px', padding: '12px', textAlign: 'center' }}>
-            <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--accent-green)' }}>{(data?.lives_potentially_saved_with_plan || 0).toLocaleString()}</div>
+          <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+            <div style={{ fontSize: '24px', fontWeight: '800', fontFamily: 'var(--font-mono)', color: 'var(--accent-green)' }}>{(data?.lives_potentially_saved_with_plan || 0).toLocaleString()}</div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Estimated Lives Protected</div>
           </div>
         </div>
 
         {/* Priority Tasks */}
-        <div className="section-header"><span className="icon">⚡</span>PRIORITY ACTION MATRIX</div>
+        <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Activity size={14} className="icon" /> PRIORITY ACTION MATRIX
+        </div>
         {(data?.priority_tasks || []).map((task, i) => (
           <div key={i} className="task-item">
-            <div className="task-priority">{task.priority}</div>
+            <div className="task-priority" style={{ fontFamily: 'var(--font-mono)' }}>{task.priority}</div>
             <div className="task-content">
               <div className="task-name">{task.task}</div>
               <div className="task-meta">{task.responsible} · Deadline: {task.deadline}</div>
@@ -303,26 +364,38 @@ function HumanEscalationCard({ data }) {
     <TiltCard>
       <div className="result-card" style={{ height: '100%' }}>
         <div className="result-card-header">
-          <div className="result-card-icon" style={{ background: 'rgba(239,68,68,0.15)' }}>👤</div>
+          <div className="result-card-icon" style={{ background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <UserCheck size={18} color="#ef4444" />
+          </div>
           <div>
             <div className="result-card-title">Human-in-the-Loop Gates</div>
-            <div className="result-card-subtitle">Command Decisions Requiring Human Authorization</div>
+            <div className="result-card-subtitle">Safety & Override Verification</div>
           </div>
         </div>
         {triggers.map((t, i) => (
           <div key={i} className="escalation-card">
-            <div className="escalation-header">⚠️ {approved[i] ? 'DECISION RECORDED' : 'PENDING HUMAN SIGN-OFF'}</div>
+            <div className="escalation-header" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertTriangle size={12} /> {approved[i] ? 'DECISION RECORDED' : 'PENDING HUMAN AUTHORIZATION'}
+            </div>
             <div className="escalation-body">{t.trigger}</div>
             <div className="escalation-to">Escalate to: <strong>{t.escalate_to}</strong></div>
             {!approved[i] && (
-              <div style={{ marginTop: '8px' }}>
-                <button className="approve-btn" onClick={() => setApproved(a => ({ ...a, [i]: 'approved' }))}>✅ Authorize</button>
-                <button className="override-btn" onClick={() => setApproved(a => ({ ...a, [i]: 'override' }))}>🚫 Override</button>
+              <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+                <button className="approve-btn" onClick={() => setApproved(a => ({ ...a, [i]: 'approved' }))} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <CheckCircle2 size={13} /> AUTHORIZE DISPATCH
+                </button>
+                <button className="override-btn" onClick={() => setApproved(a => ({ ...a, [i]: 'override' }))} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <XCircle size={13} /> OVERRIDE
+                </button>
               </div>
             )}
             {approved[i] && (
-              <span className={`badge badge-${approved[i] === 'approved' ? 'green' : 'red'}`} style={{ marginTop: '8px', display: 'inline-block' }}>
-                {approved[i] === 'approved' ? '✅ AUTHORIZED BY COMMANDER' : '🚫 OVERRIDDEN'}
+              <span className={`badge badge-${approved[i] === 'approved' ? 'green' : 'red'}`} style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                {approved[i] === 'approved' ? (
+                  <><CheckCircle2 size={12} /> AUTHORIZED BY COMMANDER</>
+                ) : (
+                  <><XCircle size={12} /> OVERRIDDEN BY OPERATOR</>
+                )}
               </span>
             )}
           </div>
@@ -451,7 +524,7 @@ export default function App() {
 
       {/* Header */}
       <header className="app-header" style={{
-        backgroundImage: 'linear-gradient(180deg, rgba(3,7,18,0.85) 0%, rgba(3,7,18,0.95) 100%), url(/command_center_bg.jpg)',
+        backgroundImage: 'linear-gradient(180deg, rgba(3,7,18,0.88) 0%, rgba(3,7,18,0.96) 100%), url(/command_center_bg.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
       }}>
@@ -460,8 +533,9 @@ export default function App() {
             className="logo-icon"
             animate={{ rotate: isRunning ? [0, 360] : 0 }}
             transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            🛡️
+            <ShieldAlert size={22} color="#ffffff" />
           </motion.div>
           <div>
             <div className="app-title">CRISISGUARD AI</div>
@@ -493,24 +567,31 @@ export default function App() {
         {/* Left Panel - Command Inputs */}
         <div className="left-panel">
           <div>
-            <div className="section-header"><span className="icon">🎯</span>DISASTER CLASSIFICATION</div>
+            <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Sliders size={14} className="icon" /> INCIDENT CLASSIFICATION
+            </div>
             <div className="disaster-grid">
-              {DISASTER_TYPES.map(d => (
-                <button
-                  key={d.id}
-                  className={`disaster-btn ${disasterType === d.id ? 'active' : ''}`}
-                  onClick={() => setDisasterType(d.id)}
-                >
-                  <span className="emoji">{d.icon}</span>
-                  {d.label}
-                </button>
-              ))}
+              {DISASTER_TYPES.map(d => {
+                const IconComponent = d.icon
+                return (
+                  <button
+                    key={d.id}
+                    className={`disaster-btn ${disasterType === d.id ? 'active' : ''}`}
+                    onClick={() => setDisasterType(d.id)}
+                  >
+                    <IconComponent size={18} className="disaster-btn-icon" />
+                    {d.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
           <div className="form-card">
             <div className="form-group">
-              <label className="form-label">📍 Incident Location / Epicenter</label>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin size={13} color="var(--accent-blue)" /> Incident Location / Epicenter
+              </label>
               <input
                 className="form-input"
                 placeholder="e.g. Bhubaneswar, Odisha or coordinates"
@@ -519,7 +600,9 @@ export default function App() {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">⚡ Severity Classification</label>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <AlertTriangle size={13} color="var(--accent-orange)" /> Threat Severity Classification
+              </label>
               <div className="severity-selector">
                 {['LOW', 'MODERATE', 'HIGH', 'CRITICAL'].map(s => (
                   <button
@@ -534,7 +617,9 @@ export default function App() {
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">📝 Situation Briefing</label>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FileText size={13} color="var(--accent-cyan)" /> Situational Field Briefing
+              </label>
               <textarea
                 className="form-textarea"
                 placeholder="Enter field reports, emergency dispatch observations..."
@@ -549,32 +634,42 @@ export default function App() {
             >
               {isRunning ? (
                 <>
-                  <div className="spinner" /> AGENTS ORCHESTRATING...
+                  <Loader2 size={16} className="animate-spin" /> ORCHESTRATING AGENTS...
                 </>
               ) : (
-                <>🚀 ACTIVATE CRISISGUARD AI</>
+                <>
+                  <Zap size={14} /> EXECUTE AUTONOMOUS DISPATCH PIPELINE
+                </>
               )}
             </button>
           </div>
 
           {/* Preset Sample Scenarios */}
           <div>
-            <div className="section-header"><span className="icon">📋</span>VERIFIED INDIAN DISASTER BENCHMARKS</div>
-            {SAMPLE_SCENARIOS.map((s, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="scenario-card"
-                onClick={() => loadScenario(s)}
-              >
-                <span className="emoji">{s.emoji}</span>
-                <div>
-                  <div className="scenario-title">{s.title}</div>
-                  <div className="scenario-sub">{s.severity} · Click to auto-load</div>
-                </div>
-              </motion.div>
-            ))}
+            <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <FileText size={14} className="icon" /> VERIFIED INDIAN DISASTER BENCHMARKS
+            </div>
+            {SAMPLE_SCENARIOS.map((s, i) => {
+              const IconComp = s.icon
+              return (
+                <motion.div
+                  key={i}
+                  whileHover={{ scale: 1.01, x: 2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="scenario-card"
+                  onClick={() => loadScenario(s)}
+                >
+                  <div className="scenario-icon-box">
+                    <IconComp size={16} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div className="scenario-title">{s.title}</div>
+                    <div className="scenario-sub">{s.severity} · Click to auto-load</div>
+                  </div>
+                  <ChevronRight size={13} style={{ color: 'var(--text-muted)' }} />
+                </motion.div>
+              )
+            })}
           </div>
         </div>
 
@@ -582,11 +677,11 @@ export default function App() {
         <div className="right-panel">
           {/* Spatial Awareness Header with Google Earth Mode */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <div className="section-header" style={{ marginBottom: 0 }}>
-              <span className="icon">🛰️</span>SITUATION AWARENESS SATELLITE MAP (GOOGLE EARTH MODE)
+            <div className="section-header" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Satellite size={14} className="icon" /> SITUATION AWARENESS SATELLITE RADAR (HIGH-RES ORBIT)
             </div>
             <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>🖱️ Scroll Wheel / Drag / Double-Click to Zoom</span>
+              <span style={{ fontFamily: 'var(--font-mono)' }}>Scroll Wheel / Drag / Double-Click to Zoom</span>
               <span className="badge badge-green">LIVE ESRI SATELLITE</span>
             </div>
           </div>
@@ -599,8 +694,6 @@ export default function App() {
             disasterType={disasterType}
             liveEvents={liveHazards}
           />
-
-
 
           {/* Live Telemetry Banner */}
           {liveTelemetry && (
@@ -631,28 +724,46 @@ export default function App() {
           {/* Results Area */}
           {!results && !isRunning ? (
             <div className="welcome-screen">
-              <div className="welcome-icon">🛡️</div>
+              <div className="welcome-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShieldAlert size={48} color="#00f0ff" />
+              </div>
               <div className="welcome-title">CrisisGuard AI Operations Ready</div>
               <div className="welcome-subtitle">
                 Autonomous multi-agent intelligence for disaster response coordination.
                 Select an active global hazard from the NASA ticker above or trigger a regional benchmark.
               </div>
               <div className="feature-grid">
-                <div className="feature-item"><span className="feature-icon">🔍</span><span className="feature-text">Intelligence Assessment Agent (Real GIS)</span></div>
-                <div className="feature-item"><span className="feature-icon">🗺️</span><span className="feature-text">Resource Mapper Agent (Verified Hospitals)</span></div>
-                <div className="feature-item"><span className="feature-icon">📢</span><span className="feature-text">Multilingual Alert Agent (SMS + Regional)</span></div>
-                <div className="feature-item"><span className="feature-icon">🎯</span><span className="feature-text">Response Coordinator Agent (ICS Protocol)</span></div>
+                <div className="feature-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="scenario-icon-box" style={{ width: '28px', height: '28px' }}>
+                    <Compass size={14} color="#38bdf8" />
+                  </div>
+                  <span className="feature-text">Intelligence Assessment Agent (Real GIS)</span>
+                </div>
+                <div className="feature-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="scenario-icon-box" style={{ width: '28px', height: '28px' }}>
+                    <Building2 size={14} color="#10b981" />
+                  </div>
+                  <span className="feature-text">Resource Mapper Agent (Verified Hospitals)</span>
+                </div>
+                <div className="feature-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="scenario-icon-box" style={{ width: '28px', height: '28px' }}>
+                    <Radio size={14} color="#eab308" />
+                  </div>
+                  <span className="feature-text">Multilingual Alert Agent (SMS + Regional)</span>
+                </div>
+                <div className="feature-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="scenario-icon-box" style={{ width: '28px', height: '28px' }}>
+                    <ShieldCheck size={14} color="#a855f7" />
+                  </div>
+                  <span className="feature-text">Response Coordinator Agent (ICS Protocol)</span>
+                </div>
               </div>
             </div>
           ) : isRunning && !results ? (
             <div className="welcome-screen">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                style={{ fontSize: '60px' }}
-              >
-                ⚙️
-              </motion.div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+                <Loader2 size={54} color="#00f0ff" className="animate-spin" />
+              </div>
               <div className="welcome-title">Autonomous Agents Coordinating...</div>
               <div className="welcome-subtitle">Streaming real-time GIS coordinates and computing task prioritization matrix.</div>
             </div>
