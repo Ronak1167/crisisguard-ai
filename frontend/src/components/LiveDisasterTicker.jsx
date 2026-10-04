@@ -98,7 +98,7 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
         fontFamily: 'var(--font-mono)',
       }}>
         <span className="spinner" style={{ width: '12px', height: '12px' }} />
-        <span>SYNCING LIVE SATELLITE TELEMETRY (NASA EONET & USGS)...</span>
+        <span>SYNCING REAL-TIME GLOBAL INCIDENT FEEDS (NASA EONET & USGS)...</span>
       </div>
     )
   }
@@ -135,7 +135,7 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
       }}>
         <Radio size={13} color="#ef4444" className="live-indicator" style={{ animation: 'pulse-red 1.5s infinite' }} />
         <span style={{ fontFamily: 'var(--font-sans)', fontSize: '11px', fontWeight: '700' }}>
-          GLOBAL HAZARDS:
+          LIVE GLOBAL DISASTER FEED:
         </span>
         <span style={{
           background: 'rgba(239, 68, 68, 0.15)',
@@ -245,7 +245,7 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
               {ev.source.split(' ')[0]}
             </span>
             <span style={{ fontSize: '10px', color: '#06b6d4', opacity: 0.9, fontWeight: '700', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <Zap size={10} /> ACTIVATE
+              <Zap size={10} /> LOAD INCIDENT
             </span>
           </motion.div>
         ))}

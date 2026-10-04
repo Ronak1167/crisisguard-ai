@@ -48,9 +48,9 @@ const DISASTER_TYPES = [
 ]
 
 const SAMPLE_SCENARIOS = [
-  { icon: Wind, title: 'Cyclone Amphan - Odisha', type: 'cyclone', location: 'Bhubaneswar, Odisha', severity: 'CRITICAL', desc: 'Category 4 cyclone approaching coastal Odisha. Winds at 180 km/h. Severe storm surge expected.' },
-  { icon: Waves, title: 'Flash Flood - Kerala', type: 'flood', location: 'Wayanad, Kerala', severity: 'HIGH', desc: 'Heavy monsoon rainfall causing flash flooding in Wayanad district. Multiple villages submerged.' },
-  { icon: Activity, title: 'Earthquake - Delhi NCR', type: 'earthquake', location: 'New Delhi, Delhi', severity: 'HIGH', desc: 'Magnitude 6.2 earthquake strikes Delhi NCR. Multiple aftershocks reported. Structural collapse risks.' },
+  { icon: Wind, title: 'Cyclone Scenario — Coastal Odisha', type: 'cyclone', location: 'Bhubaneswar, Odisha', severity: 'CRITICAL', desc: 'Category 4 cyclone approaching coastal Odisha. Winds at 180 km/h. Severe storm surge expected.' },
+  { icon: Waves, title: 'Flash Flood & Landslide — Wayanad', type: 'flood', location: 'Wayanad, Kerala', severity: 'HIGH', desc: 'Heavy monsoon rainfall causing flash flooding in Wayanad district. Multiple villages submerged.' },
+  { icon: Activity, title: 'Earthquake & Urban Collapse — Delhi NCR', type: 'earthquake', location: 'New Delhi, Delhi', severity: 'HIGH', desc: 'Magnitude 6.2 earthquake strikes Delhi NCR. Multiple aftershocks reported. Structural collapse risks.' },
 ]
 
 // Optional subtle audio ping using Web Audio API for agent events
@@ -89,14 +89,14 @@ function AgentTracePanel({ events }) {
     <div className="agent-trace-panel" ref={scrollRef}>
       <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <Terminal size={14} className="icon" />
-        LIVE MULTI-AGENT TELEMETRY STREAM
-        {events.length > 0 && <span className="badge badge-green" style={{ marginLeft: 'auto' }}>{events.length} EVENTS</span>}
+        INCIDENT COMMAND MULTI-AGENT EXECUTION LOG
+        {events.length > 0 && <span className="badge badge-green" style={{ marginLeft: 'auto' }}>{events.length} AGENT ACTIONS</span>}
       </div>
       {events.length === 0 ? (
         <div className="trace-empty">
           <Cpu size={32} style={{ color: '#38bdf8', opacity: 0.6 }} />
-          <span>Awaiting incident execution or live hazard selection...</span>
-          <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)' }}>Multi-agent autonomous trace will stream here over WebSocket protocol</span>
+          <span>Incident Command System Standing By...</span>
+          <span style={{ fontSize: '11px', color: '#64748b', fontFamily: 'var(--font-mono)' }}>Select a disaster incident or global hazard to view autonomous multi-agent coordination</span>
         </div>
       ) : (
         events.map((event, i) => (
@@ -582,16 +582,16 @@ export default function App() {
           </motion.div>
           <div>
             <div className="app-title">CRISISGUARD AI</div>
-            <div className="app-subtitle">Autonomous Disaster Response Intelligence System · WCC LaunchPad 3.0</div>
+            <div className="app-subtitle">Autonomous Emergency Operations & Multi-Agent Incident Coordination Platform</div>
           </div>
         </div>
 
         <div className="header-badges">
           <span className="badge badge-green" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span className="live-indicator" /> REAL-TIME SATELLITE TELEMETRY
+            <span className="live-indicator" /> REAL-TIME SATELLITE & WEATHER FEEDS
           </span>
-          <span className="badge badge-blue">NASA EONET & USGS CONNECTED</span>
-          <span className="badge badge-purple">4 AGENTS ACTIVE</span>
+          <span className="badge badge-blue">NASA EONET & USGS SEISMIC FEEDS</span>
+          <span className="badge badge-purple">4 SPECIALIZED RESPONSE AGENTS ONLINE</span>
         </div>
       </header>
 
@@ -677,11 +677,11 @@ export default function App() {
             >
               {isRunning ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" /> ORCHESTRATING AGENTS...
+                  <Loader2 size={16} className="animate-spin" /> COORDINATING RESPONSE AGENTS...
                 </>
               ) : (
                 <>
-                  <Zap size={14} /> EXECUTE AUTONOMOUS DISPATCH PIPELINE
+                  <Zap size={14} /> ACTIVATE INCIDENT RESPONSE & COORDINATION
                 </>
               )}
             </button>
@@ -690,7 +690,7 @@ export default function App() {
           {/* Preset Sample Scenarios */}
           <div>
             <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <FileText size={14} className="icon" /> VERIFIED INDIAN DISASTER BENCHMARKS
+              <FileText size={14} className="icon" /> REGIONAL INCIDENT SCENARIOS
             </div>
             {SAMPLE_SCENARIOS.map((s, i) => {
               const IconComp = s.icon
@@ -718,14 +718,14 @@ export default function App() {
 
         {/* Right Panel - Visual Telemetry & Agent Outputs */}
         <div className="right-panel">
-          {/* Spatial Awareness Header with Google Earth Mode */}
+          {/* Spatial Awareness Header with Map Controls */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <div className="section-header" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Satellite size={14} className="icon" /> SITUATION AWARENESS SATELLITE RADAR (HIGH-RES ORBIT)
+              <Satellite size={14} className="icon" /> GEOSPATIAL INCIDENT MAP & REAL-TIME ASSET TRACKING
             </div>
             <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontFamily: 'var(--font-mono)' }}>Scroll Wheel / Drag / Double-Click to Zoom</span>
-              <span className="badge badge-green">LIVE ESRI SATELLITE</span>
+              <span className="badge badge-green">ESRI HIGH-RESOLUTION SATELLITE</span>
             </div>
           </div>
 
@@ -752,8 +752,8 @@ export default function App() {
             <motion.div className="live-telemetry-banner" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="telemetry-tag">
                 <span className="live-indicator" />
-                <span>STATUS:</span>
-                <span className="telemetry-val">LIVE SATELLITE STREAM</span>
+                <span>ATMOSPHERIC STATUS:</span>
+                <span className="telemetry-val">LIVE OBSERVATION STREAM</span>
               </div>
               <div className="telemetry-tag">
                 <span>SURFACE TEMP:</span>
@@ -764,8 +764,8 @@ export default function App() {
                 <span className="telemetry-val">{liveTelemetry.wind_speed_kmh} km/h</span>
               </div>
               <div className="telemetry-tag">
-                <span>RADAR TELEMETRY:</span>
-                <span className="telemetry-val">{liveTelemetry.provider}</span>
+                <span>DATA SOURCE:</span>
+                <span className="telemetry-val">Open-Meteo Global Forecasting</span>
               </div>
             </motion.div>
           )}
@@ -779,35 +779,35 @@ export default function App() {
               <div className="welcome-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ShieldAlert size={48} color="#00f0ff" />
               </div>
-              <div className="welcome-title">CrisisGuard AI Operations Ready</div>
+              <div className="welcome-title">CrisisGuard AI Incident Command Center</div>
               <div className="welcome-subtitle">
-                Autonomous multi-agent intelligence for disaster response coordination.
-                Select an active global hazard from the NASA ticker above or trigger a regional benchmark.
+                Autonomous multi-agent intelligence system for rapid disaster response, regional facility triage, and emergency broadcast coordination.
+                Select an active global hazard from the live feed above, click any marker on the map, or load an incident scenario to begin.
               </div>
               <div className="feature-grid">
                 <div className="feature-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div className="scenario-icon-box" style={{ width: '28px', height: '28px' }}>
                     <Compass size={14} color="#38bdf8" />
                   </div>
-                  <span className="feature-text">Intelligence Assessment Agent (Real GIS)</span>
+                  <span className="feature-text">Intelligence Assessment Agent (GIS Geocoding & Threat Telemetry)</span>
                 </div>
                 <div className="feature-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div className="scenario-icon-box" style={{ width: '28px', height: '28px' }}>
                     <Building2 size={14} color="#10b981" />
                   </div>
-                  <span className="feature-text">Resource Mapper Agent (Verified Hospitals)</span>
+                  <span className="feature-text">Resource Mapper Agent (Hospital Capacity & Shelter Registry)</span>
                 </div>
                 <div className="feature-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div className="scenario-icon-box" style={{ width: '28px', height: '28px' }}>
                     <Radio size={14} color="#eab308" />
                   </div>
-                  <span className="feature-text">Multilingual Alert Agent (SMS + Regional)</span>
+                  <span className="feature-text">Emergency Communications Agent (Multilingual Public & SMS Alerts)</span>
                 </div>
                 <div className="feature-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div className="scenario-icon-box" style={{ width: '28px', height: '28px' }}>
                     <ShieldCheck size={14} color="#a855f7" />
                   </div>
-                  <span className="feature-text">Response Coordinator Agent (ICS Protocol)</span>
+                  <span className="feature-text">Response Coordinator Agent (ICS-201 Incident Action Plan)</span>
                 </div>
               </div>
             </div>
@@ -816,8 +816,8 @@ export default function App() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
                 <Loader2 size={54} color="#00f0ff" className="animate-spin" />
               </div>
-              <div className="welcome-title">Autonomous Agents Coordinating...</div>
-              <div className="welcome-subtitle">Streaming real-time GIS coordinates and computing task prioritization matrix.</div>
+              <div className="welcome-title">Autonomous Response Agents Coordinating...</div>
+              <div className="welcome-subtitle">Assessing threat perimeter, matching local medical facilities, drafting multilingual advisories, and generating the operational Incident Action Plan.</div>
             </div>
           ) : results && (
             <div className="results-panel">

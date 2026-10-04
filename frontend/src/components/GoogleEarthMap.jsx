@@ -408,7 +408,7 @@ export default function GoogleEarthMap({
               {results ? (
                 <div className="popup-results-box">
                   <div style={{ fontSize: '10px', color: '#10b981', fontWeight: '700', letterSpacing: '0.04em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <CheckCircle2 size={12} /> AI DISPATCH PIPELINE ACTIVE ({results.response_plan?.overall_response_score || 78}% EFFECTIVENESS)
+                    <CheckCircle2 size={12} /> INCIDENT ACTION PLAN ACTIVE ({results.response_plan?.overall_response_score || 78}% RESPONSE ADEQUACY)
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '3px' }}>
                     <span style={{ color: '#94a3b8' }}>Population at Risk:</span>
@@ -437,7 +437,7 @@ export default function GoogleEarthMap({
                     }}
                     className="popup-view-btn"
                   >
-                    <ShieldCheck size={12} /> SCROLL TO INCIDENT COMMAND PLAYBOOK
+                    <ShieldCheck size={12} /> VIEW COMPLETE INCIDENT ACTION PLAN (IAP)
                   </button>
                 </div>
               ) : isRunning ? (
@@ -465,10 +465,10 @@ export default function GoogleEarthMap({
                     }}
                     className="popup-activate-btn"
                   >
-                    <Zap size={13} /> ACTIVATE CRISISGUARD AI FOR THIS EPICENTER
+                    <Zap size={13} /> ANALYZE THIS INCIDENT WITH CRISISGUARD AI
                   </button>
                   <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px', textAlign: 'center' }}>
-                    Details auto-loaded into command console. Click to execute.
+                    Incident parameters loaded into Command Console. Click to initiate.
                   </div>
                 </div>
               )}
@@ -580,7 +580,7 @@ export default function GoogleEarthMap({
                   <div className="popup-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <AlertTriangle size={15} color={color} />
-                      <span className="popup-title">LIVE GLOBAL HAZARD</span>
+                      <span className="popup-title">LIVE GLOBAL DISASTER EVENT</span>
                     </div>
                     <span className="badge badge-yellow">{ev.severity || 'ACTIVE'}</span>
                   </div>
@@ -631,10 +631,10 @@ export default function GoogleEarthMap({
                         color: '#fef08a',
                       }}
                     >
-                      <Zap size={13} /> ACTIVATE CRISISGUARD AI FOR THIS HAZARD
+                      <Zap size={13} /> ACTIVATE CRISIS RESPONSE FOR THIS INCIDENT
                     </button>
                     <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px', textAlign: 'center' }}>
-                      Details loaded into Command Console. Click to execute.
+                      Parameters loaded into Command Console. Click to coordinate response.
                     </div>
                   </div>
                 </div>
@@ -691,7 +691,7 @@ export default function GoogleEarthMap({
             gap: '5px',
           }}
         >
-          <Layers size={12} /> TACTICAL DARK
+          <Layers size={12} /> DARK CANVAS
         </button>
         <button
           onClick={toggleFullscreen}
@@ -755,7 +755,7 @@ export default function GoogleEarthMap({
           animation: 'pulse 1.4s infinite',
         }} />
         <span style={{ fontWeight: '800', letterSpacing: '0.05em' }}>
-          {hospitals.length > 0 ? `TACTICAL RADAR: ${hospitals.length} HOSPITALS & ${shelters.length} SHELTERS LINKED` : 'SATELLITE ACTIVE'}
+          {hospitals.length > 0 ? `EMERGENCY ASSETS: ${hospitals.length} HOSPITALS & ${shelters.length} SHELTERS MAPPED` : 'SATELLITE BASEMAP ACTIVE'}
         </span>
       </div>
 
@@ -786,21 +786,21 @@ export default function GoogleEarthMap({
           className="severity-btn"
           style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '600', color: '#00f0ff', borderColor: 'rgba(0,240,255,0.4)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
-          <Building2 size={11} /> STREET LEVEL
+          <Building2 size={11} /> LOCAL AREA
         </button>
         <button
           onClick={flyToAllAssets}
           className="severity-btn"
           style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '600', color: '#10b981', borderColor: 'rgba(16,185,129,0.4)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
-          <Compass size={11} /> FIT ALL ASSETS ({hospitals.length + shelters.length})
+          <Compass size={11} /> FIT ALL FACILITIES ({hospitals.length + shelters.length})
         </button>
         <button
           onClick={flyToGlobalOrbit}
           className="severity-btn"
           style={{ padding: '4px 10px', fontSize: '10px', fontWeight: '600', color: '#38bdf8', borderColor: 'rgba(56,189,248,0.4)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
         >
-          <Globe size={11} /> GLOBAL ORBIT
+          <Globe size={11} /> GLOBAL OVERVIEW
         </button>
       </div>
 
@@ -823,7 +823,7 @@ export default function GoogleEarthMap({
         gap: '12px',
         alignItems: 'center',
       }}>
-        <span>EYE ALT: <strong style={{ color: '#00f0ff' }}>{eyeAltitudeKm} km</strong></span>
+        <span>CAMERA ALT: <strong style={{ color: '#00f0ff' }}>{eyeAltitudeKm} km</strong></span>
         <span>ZOOM: <strong style={{ color: '#00f0ff' }}>{typeof currentZoom === 'number' ? (Number.isInteger(currentZoom) ? currentZoom : currentZoom.toFixed(1)) : currentZoom} / 19</strong></span>
         <span>GPS: <strong style={{ color: '#f1f5f9' }}>{lat.toFixed(4)}°N, {lng.toFixed(4)}°E</strong></span>
       </div>
