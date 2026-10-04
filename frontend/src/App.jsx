@@ -2,8 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './index.css'
 
-import ThreeGlobe from './components/ThreeGlobe'
-import TacticalMap from './components/TacticalMap'
+import GoogleEarthMap from './components/GoogleEarthMap'
 import TiltCard from './components/TiltCard'
 import LiveDisasterTicker from './components/LiveDisasterTicker'
 
@@ -581,42 +580,26 @@ export default function App() {
 
         {/* Right Panel - Visual Telemetry & Agent Outputs */}
         <div className="right-panel">
-          {/* Spatial View Mode Switcher */}
+          {/* Spatial Awareness Header with Google Earth Mode */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <div className="section-header" style={{ marginBottom: 0 }}>
-              <span className="icon">🌐</span>SITUATION AWARENESS SPATIAL RADAR
+              <span className="icon">🛰️</span>SITUATION AWARENESS SATELLITE MAP (GOOGLE EARTH MODE)
             </div>
-            <div className="view-toggle-bar">
-              <button
-                className={`view-toggle-btn ${viewMode === '3d' ? 'active' : ''}`}
-                onClick={() => setViewMode('3d')}
-              >
-                🌐 3D HOLOGRAPHIC GLOBE
-              </button>
-              <button
-                className={`view-toggle-btn ${viewMode === '2d' ? 'active' : ''}`}
-                onClick={() => setViewMode('2d')}
-              >
-                🛰️ 2D TACTICAL GIS MAP
-              </button>
+            <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🖱️ Scroll Wheel / Drag / Double-Click to Zoom</span>
+              <span className="badge badge-green">LIVE ESRI SATELLITE</span>
             </div>
           </div>
 
-          {/* 3D Holographic Globe or 2D Tactical GIS Map */}
-          {viewMode === '3d' ? (
-            <ThreeGlobe
-              centerCoords={activeCoords}
-              liveEvents={liveHazards}
-              detectedFacilities={results?.resources}
-            />
-          ) : (
-            <TacticalMap
-              coordinates={activeCoords}
-              hospitals={results?.resources?.hospitals || []}
-              shelters={results?.resources?.shelters || []}
-              disasterType={disasterType}
-            />
-          )}
+          {/* Interactive Google Earth Style Map */}
+          <GoogleEarthMap
+            coordinates={activeCoords}
+            hospitals={results?.resources?.hospitals || []}
+            shelters={results?.resources?.shelters || []}
+            disasterType={disasterType}
+            liveEvents={liveHazards}
+          />
+
 
 
           {/* Live Telemetry Banner */}
