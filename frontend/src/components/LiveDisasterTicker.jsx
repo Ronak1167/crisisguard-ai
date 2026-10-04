@@ -154,31 +154,33 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
       </div>
 
       {/* Left Scroll Chevron */}
-      <button
+      <motion.button
         type="button"
-        onClick={() => scrollByAmount(-350)}
+        whileHover={{ scale: 1.15, backgroundColor: 'rgba(0, 240, 255, 0.25)', borderColor: '#00f0ff' }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => scrollByAmount(-320)}
         style={{
           flex: '0 0 auto',
-          width: '26px',
-          height: '26px',
+          width: '20px',
+          height: '20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: '6px',
-          background: 'rgba(15, 23, 42, 0.9)',
-          border: '1px solid rgba(0, 240, 255, 0.35)',
+          borderRadius: '50%',
+          background: 'rgba(15, 23, 42, 0.7)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
           color: '#00f0ff',
           cursor: 'pointer',
-          fontSize: '11px',
-          transition: 'all 0.2s',
           padding: 0,
+          boxShadow: '0 0 6px rgba(0, 240, 255, 0.15)',
+          transition: 'all 0.2s',
         }}
-        onMouseEnter={(e) => e.currentTarget.style.borderColor = '#00f0ff'}
-        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.35)'}
-        title="Scroll Left (or use mouse wheel / drag)"
+        title="Scroll Left"
       >
-        ◀
-      </button>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </motion.button>
 
       {/* Horizontal Scrollable Track */}
       <div
@@ -247,31 +249,33 @@ export default function LiveDisasterTicker({ onSelectEvent }) {
       </div>
 
       {/* Right Scroll Chevron */}
-      <button
+      <motion.button
         type="button"
-        onClick={() => scrollByAmount(350)}
+        whileHover={{ scale: 1.15, backgroundColor: 'rgba(0, 240, 255, 0.25)', borderColor: '#00f0ff' }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => scrollByAmount(320)}
         style={{
           flex: '0 0 auto',
-          width: '26px',
-          height: '26px',
+          width: '20px',
+          height: '20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: '6px',
-          background: 'rgba(15, 23, 42, 0.9)',
-          border: '1px solid rgba(0, 240, 255, 0.35)',
+          borderRadius: '50%',
+          background: 'rgba(15, 23, 42, 0.7)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
           color: '#00f0ff',
           cursor: 'pointer',
-          fontSize: '11px',
-          transition: 'all 0.2s',
           padding: 0,
+          boxShadow: '0 0 6px rgba(0, 240, 255, 0.15)',
+          transition: 'all 0.2s',
         }}
-        onMouseEnter={(e) => e.currentTarget.style.borderColor = '#00f0ff'}
-        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.35)'}
-        title="Scroll Right (or use mouse wheel / drag)"
+        title="Scroll Right"
       >
-        ▶
-      </button>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </motion.button>
     </div>
   )
 }
