@@ -117,21 +117,38 @@ async def health_check():
     }
 
 
-@app.get("/api/disaster-types")
-async def get_disaster_types():
+@app.get("/api/live-disasters")
+async def get_live_disasters():
+    """
+    Returns verified live global disaster events directly from NASA EONET and USGS Earthquakes.
+    """
+    from services.real_data_service import fetch_live_global_disasters
+    events = await fetch_live_global_disasters()
     return {
-        "types": [
-            {"id": "cyclone", "label": "Cyclone / Hurricane", "icon": "🌀"},
-            {"id": "flood", "label": "Flood", "icon": "🌊"},
-            {"id": "earthquake", "label": "Earthquake", "icon": "🏚️"},
-            {"id": "landslide", "label": "Landslide", "icon": "⛰️"},
-            {"id": "drought", "label": "Drought", "icon": "☀️"},
-            {"id": "heatwave", "label": "Heat Wave", "icon": "🔥"},
-            {"id": "tsunami", "label": "Tsunami", "icon": "🌊"},
-        ]
+        "status": "success",
+        "count": len(events),
+        "sources": ["NASA EONET v3", "USGS Real-Time Seismic Network"],
+        "events": events,
+        "fetched_at": datetime.utcnow().isoformat(),
+    }
+
+
+@app.get("/api/telemetry/{location}")
+async def get_live_telemetry(location: str):
+    """
+    Returns real-time GPS coordinates and live meteorological telemetry for any location.
+    """
+    from services.real_data_service import geocode_location, fetch_real_weather_telemetry
+    geo = await geocode_location(location)
+    wx = await fetch_real_weather_telemetry(geo["lat"], geo["lng"])
+    return {
+        "location": geo,
+        "weather": wx,
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+
