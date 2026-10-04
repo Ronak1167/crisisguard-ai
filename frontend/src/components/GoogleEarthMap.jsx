@@ -256,16 +256,26 @@ export default function GoogleEarthMap({
           </>
         )}
 
-        {/* 3. Tactical Dark Matter */}
+        {/* 3. Tactical Dark (ESRI World Dark Gray Base + Reference) - Watermark-Free & No API Key Required */}
         {mapLayer === 'tactical' && (
-          <TileLayer
-            attribution='&copy; CARTO Dark Matter'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            maxZoom={19}
-            minZoom={2}
-            noWrap={true}
-            bounds={worldBounds}
-          />
+          <>
+            <TileLayer
+              attribution='&copy; ESRI Dark Gray Canvas'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+              minZoom={2}
+              noWrap={true}
+              bounds={worldBounds}
+            />
+            <TileLayer
+              attribution='&copy; ESRI Reference'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+              minZoom={2}
+              noWrap={true}
+              bounds={worldBounds}
+            />
+          </>
         )}
 
         {/* Laser Triage Lines connecting Epicenter to each Hospital */}

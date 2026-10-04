@@ -109,10 +109,16 @@ export default function TacticalMap({ coordinates, hospitals = [], shelters = []
       >
         <MapCameraController coordinates={coordinates} hospitals={hospitals} shelters={shelters} />
 
-        {/* Dark Mode CartoDB TileLayer for high-tech aesthetics */}
+        {/* ESRI World Dark Gray Canvas - Watermark-Free & No API Key Required */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; ESRI Dark Gray Canvas'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={19}
+        />
+        <TileLayer
+          attribution='&copy; ESRI Reference'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={19}
         />
 
         {/* Epicenter Marker */}
