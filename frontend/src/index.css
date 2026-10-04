@@ -823,3 +823,14 @@ html, body {
   justify-content: center;
 }
 
+.leaflet-container {
+  background-color: #020617 !important;
+  font-family: inherit;
+  outline: none;
+}
+
+.leaflet-tile-container img {
+  image-rendering: auto;
+}
+
+

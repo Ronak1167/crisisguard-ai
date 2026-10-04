@@ -121,9 +121,10 @@ export default function GoogleEarthMap({
 
   // Calculate approximate eye altitude in km (similar to Google Earth)
   const eyeAltitudeKm = useMemo(() => {
-    // Zoom 19 is ~0.2 km, Zoom 12 is ~15 km, Zoom 3 is ~4,000 km
-    const base = 40000 / Math.pow(2, currentZoom - 1)
-    return base >= 10 ? Math.round(base) : base.toFixed(1)
+    // Zoom 19 is ~0.15 km, Zoom 12 is ~15 km, Zoom 2 is ~10,000 km
+    const z = Math.max(2, typeof currentZoom === 'number' ? currentZoom : 12)
+    const base = 40000 / Math.pow(2, z - 1)
+    return base >= 10 ? Math.round(base).toLocaleString() : base.toFixed(1)
   }, [currentZoom])
 
   // Map Presets for Movie-style Quick Navigation
@@ -151,7 +152,19 @@ export default function GoogleEarthMap({
 
   const flyToGlobalOrbit = () => {
     if (mapRef.current) {
-      mapRef.current.flyTo([lat, lng], 4, { duration: 2.8 })
+      mapRef.current.flyTo([lat, lng], 2.5, { duration: 2.2 })
+    }
+  }
+
+  const handleZoomIn = () => {
+    if (mapRef.current) {
+      mapRef.current.zoomIn(1)
+    }
+  }
+
+  const handleZoomOut = () => {
+    if (mapRef.current) {
+      mapRef.current.zoomOut(1)
     }
   }
 
@@ -160,6 +173,12 @@ export default function GoogleEarthMap({
   }
 
   const epicenterIcon = useMemo(() => createPulseIcon('⚠️', '#ef4444', 'EPICENTER'), [])
+
+  // World bounds to strictly prevent panning into the infinite void
+  const worldBounds = useMemo(() => [
+    [-85, -180],
+    [85, 180],
+  ], [])
 
   return (
     <div
@@ -179,12 +198,19 @@ export default function GoogleEarthMap({
         ref={mapRef}
         center={[lat, lng]}
         zoom={12}
+        minZoom={2}
+        maxZoom={19}
+        zoomSnap={0.5}
+        zoomDelta={0.5}
+        maxBounds={worldBounds}
+        maxBoundsViscosity={1.0}
+        worldCopyJump={false}
         scrollWheelZoom={true}
         doubleClickZoom={true}
         zoomControl={false}
         inertia={true}
         inertiaDeceleration={3000}
-        style={{ height: '100%', width: '100%', background: '#030712' }}
+        style={{ height: '100%', width: '100%', background: '#020617' }}
       >
         <EarthCameraController
           coordinates={coordinates}
@@ -202,6 +228,9 @@ export default function GoogleEarthMap({
             attribution='&copy; ESRI World Imagery, Maxar, Earthstar Geographics'
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             maxZoom={19}
+            minZoom={2}
+            noWrap={true}
+            bounds={worldBounds}
           />
         )}
 
@@ -212,11 +241,17 @@ export default function GoogleEarthMap({
               attribution='&copy; ESRI World Imagery'
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               maxZoom={19}
+              minZoom={2}
+              noWrap={true}
+              bounds={worldBounds}
             />
             <TileLayer
               attribution='&copy; ESRI Reference'
               url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
               maxZoom={19}
+              minZoom={2}
+              noWrap={true}
+              bounds={worldBounds}
             />
           </>
         )}
@@ -227,6 +262,9 @@ export default function GoogleEarthMap({
             attribution='&copy; CARTO Dark Matter'
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             maxZoom={19}
+            minZoom={2}
+            noWrap={true}
+            bounds={worldBounds}
           />
         )}
 
@@ -393,6 +431,23 @@ export default function GoogleEarthMap({
         >
           {isFullscreen ? '🗗 COLLAPSE' : '⛶ EXPAND'}
         </button>
+        <div style={{ width: '1px', background: 'rgba(255,255,255,0.2)', margin: '2px 2px' }} />
+        <button
+          onClick={handleZoomIn}
+          className="severity-btn"
+          style={{ padding: '5px 9px', fontSize: '12px', fontWeight: '800', color: '#00f0ff' }}
+          title="Zoom In (Manual +)"
+        >
+          ➕
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="severity-btn"
+          style={{ padding: '5px 9px', fontSize: '12px', fontWeight: '800', color: '#00f0ff' }}
+          title="Zoom Out (Manual −)"
+        >
+          ➖
+        </button>
       </div>
 
       {/* Top Right: Status HUD */}
@@ -492,7 +547,7 @@ export default function GoogleEarthMap({
         alignItems: 'center',
       }}>
         <span>EYE ALT: <strong style={{ color: '#00f0ff' }}>{eyeAltitudeKm} km</strong></span>
-        <span>ZOOM: <strong style={{ color: '#00f0ff' }}>{currentZoom} / 19</strong></span>
+        <span>ZOOM: <strong style={{ color: '#00f0ff' }}>{typeof currentZoom === 'number' ? (Number.isInteger(currentZoom) ? currentZoom : currentZoom.toFixed(1)) : currentZoom} / 19</strong></span>
         <span>GPS: <strong style={{ color: '#f1f5f9' }}>{lat.toFixed(4)}°N, {lng.toFixed(4)}°E</strong></span>
       </div>
     </div>
