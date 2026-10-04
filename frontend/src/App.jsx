@@ -458,24 +458,67 @@ export default function App() {
     }
   }
 
-  const handleSelectLiveEvent = (ev) => {
+  const handleSelectEpicenter = () => {
+    const epicLocation = location || 'Bhubaneswar, Odisha'
+    const epicType = disasterType || 'cyclone'
+    const epicSeverity = severity || 'CRITICAL'
+    const epicDesc = description || 'Category 4 cyclone approaching coastal Odisha. Winds at 180 km/h. Severe storm surge expected.'
+
+    setLocation(epicLocation)
+    setDisasterType(epicType)
+    setSeverity(epicSeverity)
+    setDescription(epicDesc)
+    setActiveCoords(prev => prev || { lat: 20.2724, lng: 85.8338 })
+    playTelemetryBeep(1200)
+  }
+
+  const handleSelectHazard = (ev, autoRun = false) => {
     let dtype = 'earthquake'
     if (ev.category === 'Wildfires') dtype = 'heatwave'
     else if (ev.title.includes('Typhoon') || ev.title.includes('Cyclone') || ev.title.includes('Storm')) dtype = 'cyclone'
     else if (ev.category === 'Floods') dtype = 'flood'
 
+    const targetLoc = ev.title
+    const targetSev = ev.severity || 'CRITICAL'
+    const targetDesc = `Real-time active hazard reported by ${ev.source}. Lat: ${ev.lat}, Lng: ${ev.lng}. Immediate situational assessment required.`
+    const targetCoords = { lat: ev.lat, lng: ev.lng }
+
     setDisasterType(dtype)
-    setLocation(ev.title)
-    setSeverity(ev.severity || 'CRITICAL')
-    setDescription(`Real-time active hazard reported by ${ev.source}. Lat: ${ev.lat}, Lng: ${ev.lng}. Immediate situational assessment required.`)
-    setActiveCoords({ lat: ev.lat, lng: ev.lng })
+    setLocation(targetLoc)
+    setSeverity(targetSev)
+    setDescription(targetDesc)
+    setActiveCoords(targetCoords)
+    playTelemetryBeep(1046)
+
+    if (autoRun) {
+      executeAnalysis({
+        disasterType: dtype,
+        location: targetLoc,
+        severity: targetSev,
+        description: targetDesc,
+        coordinates: targetCoords,
+      })
+    }
   }
 
-  const runAnalysis = async () => {
-    if (!location || !description || isRunning) return
+  const executeAnalysis = async (customParams = null) => {
+    const targetType = customParams?.disasterType || disasterType || 'cyclone'
+    const targetLocation = customParams?.location || location || 'Bhubaneswar, Odisha'
+    const targetSeverity = customParams?.severity || severity || 'CRITICAL'
+    const targetDescription = customParams?.description || description || 'Category 4 cyclone approaching coastal Odisha. Winds at 180 km/h. Severe storm surge expected.'
+    const targetCoords = customParams?.coordinates || activeCoords
+
+    if (isRunning) return
     setIsRunning(true)
     setEvents([])
     setResults(null)
+
+    // Ensure form state is completely synchronized to the UI
+    setDisasterType(targetType)
+    setLocation(targetLocation)
+    setSeverity(targetSeverity)
+    setDescription(targetDescription)
+    if (targetCoords) setActiveCoords(targetCoords)
 
     const sid = crypto.randomUUID()
     setSessionId(sid)
@@ -486,10 +529,10 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          disaster_type: disasterType,
-          location,
-          severity,
-          description,
+          disaster_type: targetType,
+          location: targetLocation,
+          severity: targetSeverity,
+          description: targetDescription,
           session_id: sid,
         }),
       })
@@ -520,7 +563,7 @@ export default function App() {
   return (
     <div className="app-container">
       {/* 1. Real-time Live Global Hazard Marquee (NASA EONET & USGS) */}
-      <LiveDisasterTicker onSelectEvent={handleSelectLiveEvent} />
+      <LiveDisasterTicker onSelectEvent={(ev) => handleSelectHazard(ev, false)} />
 
       {/* Header */}
       <header className="app-header" style={{
@@ -629,7 +672,7 @@ export default function App() {
             </div>
             <button
               className="submit-btn"
-              onClick={runAnalysis}
+              onClick={() => executeAnalysis()}
               disabled={isRunning || !location || !description}
             >
               {isRunning ? (
@@ -689,10 +732,19 @@ export default function App() {
           {/* Interactive Google Earth Style Map */}
           <GoogleEarthMap
             coordinates={activeCoords}
+            location={location}
+            description={description}
+            severity={severity}
             hospitals={results?.resources?.hospitals || []}
             shelters={results?.resources?.shelters || []}
             disasterType={disasterType}
             liveEvents={liveHazards}
+            results={results}
+            liveTelemetry={liveTelemetry}
+            isRunning={isRunning}
+            onSelectEpicenter={handleSelectEpicenter}
+            onSelectHazard={handleSelectHazard}
+            onTriggerAnalysis={executeAnalysis}
           />
 
           {/* Live Telemetry Banner */}

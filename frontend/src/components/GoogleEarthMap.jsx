@@ -15,6 +15,10 @@ import {
   Globe,
   AlertTriangle,
   Home,
+  Zap,
+  CheckCircle2,
+  Loader2,
+  ShieldCheck,
 } from 'lucide-react'
 
 // Fix default leaflet marker icon paths in Vite
@@ -128,10 +132,19 @@ function EarthCameraController({ coordinates, hospitals = [], shelters = [], onV
 
 export default function GoogleEarthMap({
   coordinates,
+  location = '',
+  description = '',
+  severity = 'HIGH',
   hospitals = [],
   shelters = [],
   disasterType = 'cyclone',
   liveEvents = [],
+  results = null,
+  liveTelemetry = null,
+  isRunning = false,
+  onSelectEpicenter,
+  onSelectHazard,
+  onTriggerAnalysis,
 }) {
   const mapRef = useRef(null)
   const [mapLayer, setMapLayer] = useState('hybrid') // 'satellite' | 'hybrid' | 'tactical'
@@ -334,15 +347,131 @@ export default function GoogleEarthMap({
         ))}
 
         {/* Epicenter Marker */}
-        <Marker position={[lat, lng]} icon={epicenterIcon}>
-          <Popup>
-            <div style={{ color: '#0f172a', padding: '4px' }}>
-              <div style={{ fontWeight: '800', color: '#ef4444', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <AlertTriangle size={14} /> INCIDENT EPICENTER
+        <Marker
+          position={[lat, lng]}
+          icon={epicenterIcon}
+          eventHandlers={{
+            click: () => {
+              if (onSelectEpicenter) {
+                onSelectEpicenter()
+              }
+            },
+            popupopen: () => {
+              if (onSelectEpicenter) {
+                onSelectEpicenter()
+              }
+            },
+          }}
+        >
+          <Popup className="earth-tactical-popup" minWidth={310}>
+            <div className="popup-container">
+              <div className="popup-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <AlertTriangle size={15} color="#ef4444" />
+                  <span className="popup-title">INCIDENT EPICENTER</span>
+                </div>
+                <span className="badge badge-red">{severity || 'CRITICAL'}</span>
               </div>
-              <div style={{ marginTop: '4px' }}><strong>Type:</strong> {disasterType.toUpperCase()}</div>
-              <div><strong>GPS:</strong> {lat.toFixed(4)}°N, {lng.toFixed(4)}°E</div>
-              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>Impact zone active. Coordinated emergency response deployed.</div>
+
+              <div className="popup-location-name">
+                {location || 'Bhubaneswar, Odisha'}
+              </div>
+
+              <div className="popup-telemetry-grid">
+                <div className="popup-telemetry-item">
+                  <span className="popup-label">DISASTER TYPE</span>
+                  <span className="popup-value" style={{ textTransform: 'uppercase', color: '#00f0ff' }}>
+                    {disasterType || 'cyclone'}
+                  </span>
+                </div>
+                <div className="popup-telemetry-item">
+                  <span className="popup-label">GPS COORDINATES</span>
+                  <span className="popup-value">
+                    {lat.toFixed(4)}°N, {lng.toFixed(4)}°E
+                  </span>
+                </div>
+                <div className="popup-telemetry-item">
+                  <span className="popup-label">WIND VELOCITY</span>
+                  <span className="popup-value" style={{ color: '#38bdf8' }}>
+                    {liveTelemetry?.wind_speed_kmh ? `${liveTelemetry.wind_speed_kmh} km/h` : '185 km/h'}
+                  </span>
+                </div>
+                <div className="popup-telemetry-item">
+                  <span className="popup-label">SURFACE TEMP</span>
+                  <span className="popup-value">
+                    {liveTelemetry?.temperature_c ? `${liveTelemetry.temperature_c}°C` : '29.4°C'}
+                  </span>
+                </div>
+              </div>
+
+              {/* If analysis already completed */}
+              {results ? (
+                <div className="popup-results-box">
+                  <div style={{ fontSize: '10px', color: '#10b981', fontWeight: '700', letterSpacing: '0.04em', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <CheckCircle2 size={12} /> AI DISPATCH PIPELINE ACTIVE ({results.response_plan?.overall_response_score || 78}% EFFECTIVENESS)
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '3px' }}>
+                    <span style={{ color: '#94a3b8' }}>Population at Risk:</span>
+                    <span style={{ fontWeight: '700', color: '#ef4444', fontFamily: 'var(--font-mono)' }}>
+                      {(results.intelligence?.impact_assessment?.estimated_population_at_risk || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '3px' }}>
+                    <span style={{ color: '#94a3b8' }}>Surge Beds Mapped:</span>
+                    <span style={{ fontWeight: '700', color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
+                      {hospitals.reduce((s, h) => s + (h.beds_available || 0), 0)} beds ({hospitals.length} facilities)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                    <span style={{ color: '#94a3b8' }}>Estimated Protected:</span>
+                    <span style={{ fontWeight: '700', color: '#10b981', fontFamily: 'var(--font-mono)' }}>
+                      {(results.response_plan?.lives_potentially_saved_with_plan || 0).toLocaleString()} lives
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const el = document.querySelector('.results-panel')
+                      if (el) el.scrollIntoView({ behavior: 'smooth' })
+                    }}
+                    className="popup-view-btn"
+                  >
+                    <ShieldCheck size={12} /> SCROLL TO INCIDENT COMMAND PLAYBOOK
+                  </button>
+                </div>
+              ) : isRunning ? (
+                <div className="popup-running-box">
+                  <Loader2 size={15} className="animate-spin" color="#00f0ff" />
+                  <span>MULTI-AGENT REASONING PIPELINE IN PROGRESS...</span>
+                </div>
+              ) : (
+                <div style={{ marginTop: '4px' }}>
+                  <div className="popup-briefing-snippet">
+                    {description || 'Category 4 cyclone approaching coastal Odisha. Winds at 180 km/h. Severe storm surge expected.'}
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (onTriggerAnalysis) {
+                        onTriggerAnalysis({
+                          disasterType: disasterType || 'cyclone',
+                          location: location || 'Bhubaneswar, Odisha',
+                          severity: severity || 'CRITICAL',
+                          description: description || 'Category 4 cyclone approaching coastal Odisha. Winds at 180 km/h. Severe storm surge expected.',
+                          coordinates: { lat, lng },
+                        })
+                      }
+                    }}
+                    className="popup-activate-btn"
+                  >
+                    <Zap size={13} /> ACTIVATE CRISISGUARD AI FOR THIS EPICENTER
+                  </button>
+                  <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px', textAlign: 'center' }}>
+                    Details auto-loaded into command console. Click to execute.
+                  </div>
+                </div>
+              )}
             </div>
           </Popup>
         </Marker>
@@ -417,6 +546,102 @@ export default function GoogleEarthMap({
             </Marker>
           )
         ))}
+
+        {/* Real-time Global Hazards from NASA EONET & USGS */}
+        {liveEvents.map((ev, i) => {
+          if (!ev.lat || !ev.lng) return null
+          const isQuake = ev.category === 'Earthquake' || (ev.title && ev.title.includes('M'))
+          const isWildfire = ev.category === 'Wildfires'
+          const color = isQuake ? '#f59e0b' : isWildfire ? '#ef4444' : '#00f0ff'
+          const label = isQuake
+            ? `M${ev.magnitude || 5.0}`
+            : (ev.category?.slice(0, 6).toUpperCase() || 'ALERT')
+
+          return (
+            <Marker
+              key={`live-hz-${ev.id || i}`}
+              position={[ev.lat, ev.lng]}
+              icon={createPulseIcon('event', color, label)}
+              eventHandlers={{
+                click: () => {
+                  if (onSelectHazard) {
+                    onSelectHazard(ev, false)
+                  }
+                },
+                popupopen: () => {
+                  if (onSelectHazard) {
+                    onSelectHazard(ev, false)
+                  }
+                },
+              }}
+            >
+              <Popup className="earth-tactical-popup" minWidth={310}>
+                <div className="popup-container">
+                  <div className="popup-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <AlertTriangle size={15} color={color} />
+                      <span className="popup-title">LIVE GLOBAL HAZARD</span>
+                    </div>
+                    <span className="badge badge-yellow">{ev.severity || 'ACTIVE'}</span>
+                  </div>
+
+                  <div className="popup-location-name" style={{ fontSize: '12px' }}>
+                    {ev.title}
+                  </div>
+
+                  <div className="popup-telemetry-grid">
+                    <div className="popup-telemetry-item">
+                      <span className="popup-label">CATEGORY</span>
+                      <span className="popup-value" style={{ color: color }}>
+                        {ev.category || 'Disaster Event'}
+                      </span>
+                    </div>
+                    <div className="popup-telemetry-item">
+                      <span className="popup-label">SOURCE</span>
+                      <span className="popup-value" style={{ color: '#94a3b8' }}>
+                        {ev.source || 'NASA / USGS'}
+                      </span>
+                    </div>
+                    <div className="popup-telemetry-item">
+                      <span className="popup-label">GPS LOCATION</span>
+                      <span className="popup-value">
+                        {Number(ev.lat).toFixed(3)}°N, {Number(ev.lng).toFixed(3)}°E
+                      </span>
+                    </div>
+                    <div className="popup-telemetry-item">
+                      <span className="popup-label">OBSERVED</span>
+                      <span className="popup-value">
+                        {ev.date ? new Date(ev.date).toLocaleDateString() : 'Real-Time'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '8px' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (onSelectHazard) {
+                          onSelectHazard(ev, true)
+                        }
+                      }}
+                      className="popup-activate-btn"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(245,158,11,0.2) 0%, rgba(239,68,68,0.25) 100%)',
+                        borderColor: '#f59e0b',
+                        color: '#fef08a',
+                      }}
+                    >
+                      <Zap size={13} /> ACTIVATE CRISISGUARD AI FOR THIS HAZARD
+                    </button>
+                    <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px', textAlign: 'center' }}>
+                      Details loaded into Command Console. Click to execute.
+                    </div>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          )
+        })}
       </MapContainer>
 
       {/* Top Left: Layer Selector & Fullscreen Toggle */}
